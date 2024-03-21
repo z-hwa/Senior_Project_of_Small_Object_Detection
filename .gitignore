@@ -7,3 +7,8 @@ mmdet.egg-info/
 __pycache__/
 *.py[cod]
 *$.py.class
+browse_dataset/
+build/
+demo/
+dist/
+prepare_voc.py

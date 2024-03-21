@@ -17,7 +17,11 @@ class Compose:
 
     def __init__(self, transforms):
         assert isinstance(transforms, collections.abc.Sequence)
-        self.transforms = []
+        self.transforms = []    # transforms傳入的一個長度為8，且每個元素是字典的list，內容是train_pipeline的內容
+                                # ex. transfoms=[{‘type’:LoadImageFromFile},{‘type’:LoadAnnotations}]
+        
+        # 遍歷其中元素，利用build_from_cfg完成各個類的instance
+        # 接著append進self.transform中
         for transform in transforms:
             if isinstance(transform, dict):
                 transform = build_from_cfg(transform, PIPELINES)

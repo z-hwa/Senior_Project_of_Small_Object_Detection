@@ -17,6 +17,7 @@ from .wider_face import WIDERFaceDataset
 from .xml_style import XMLDataset
 
 from .drone import DroneDataset
+from .helmet import HelmetDataset
 
 __all__ = [
     'CustomDataset', 'XMLDataset', 'CocoDataset', 'DeepFashionDataset',
@@ -28,5 +29,5 @@ __all__ = [
     'NumClassCheckHook', 'CocoPanopticDataset', 'MultiImageMixDataset',
     'OpenImagesDataset', 'OpenImagesChallengeDataset',
 
-    'DroneDataset'
+    'DroneDataset', 'HelmetDataset'
 ]

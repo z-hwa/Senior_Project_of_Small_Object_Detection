@@ -2,14 +2,15 @@
 import argparse
 import os.path as osp
 import xml.etree.ElementTree as ET
-
-import mmcv
+import shutil
 import numpy as np
+from mmcv.fileio import dump, list_from_file
+from mmcv import mkdir_or_exist, track_progress
 
+# from mmdet.evaluation import voc_classes
 from mmdet.core import voc_classes
 
 label_ids = {name: i for i, name in enumerate(voc_classes())}
-
 
 def parse_xml(args):
     xml_path, img_path = args
@@ -25,13 +26,14 @@ def parse_xml(args):
     for obj in root.findall('object'):
         name = obj.find('name').text
         label = label_ids[name]
-        difficult = int(obj.find('difficult').text)
+        difficult = obj.find('difficult')
+        difficult = 0 if difficult is None else int(difficult.text)  # 设置默认值为0
         bnd_box = obj.find('bndbox')
         bbox = [
-            int(bnd_box.find('xmin').text),
-            int(bnd_box.find('ymin').text),
-            int(bnd_box.find('xmax').text),
-            int(bnd_box.find('ymax').text)
+            round(float(bnd_box.find('xmin').text)),  # 使用四舍五入取整
+            round(float(bnd_box.find('ymin').text)),  # 使用四舍五入取整
+            round(float(bnd_box.find('xmax').text)),  # 使用四舍五入取整
+            round(float(bnd_box.find('ymax').text))   # 使用四舍五入取整
         ]
         if difficult:
             bboxes_ignore.append(bbox)
@@ -64,7 +66,6 @@ def parse_xml(args):
     }
     return annotation
 
-
 def cvt_annotations(devkit_path, years, split, out_file):
     if not isinstance(years, list):
         years = [years]
@@ -76,7 +77,7 @@ def cvt_annotations(devkit_path, years, split, out_file):
             print(f'filelist does not exist: {filelist}, '
                   f'skip voc{year} {split}')
             return
-        img_names = mmcv.list_from_file(filelist)
+        img_names = list_from_file(filelist)
         xml_paths = [
             osp.join(devkit_path, f'VOC{year}/Annotations/{img_name}.xml')
             for img_name in img_names
@@ -84,14 +85,13 @@ def cvt_annotations(devkit_path, years, split, out_file):
         img_paths = [
             f'VOC{year}/JPEGImages/{img_name}.jpg' for img_name in img_names
         ]
-        part_annotations = mmcv.track_progress(parse_xml,
-                                               list(zip(xml_paths, img_paths)))
+        part_annotations = track_progress(parse_xml,
+                                          list(zip(xml_paths, img_paths)))
         annotations.extend(part_annotations)
     if out_file.endswith('json'):
         annotations = cvt_to_coco_json(annotations)
-    mmcv.dump(annotations, out_file)
+    dump(annotations, out_file)
     return annotations
-
 
 def cvt_to_coco_json(annotations):
     image_id = 0
@@ -179,7 +179,6 @@ def cvt_to_coco_json(annotations):
 
     return coco
 
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Convert PASCAL VOC annotations to mmdetection format')
@@ -187,18 +186,58 @@ def parse_args():
     parser.add_argument('-o', '--out-dir', help='output path')
     parser.add_argument(
         '--out-format',
-        default='pkl',
+        default='coco',
         choices=('pkl', 'coco'),
         help='output format, "coco" indicates coco annotation format')
     args = parser.parse_args()
     return args
 
+def copy_images_to_folders(devkit_path, out_dir):
+    jpeg_images_dir = osp.join(devkit_path, 'JPEGImages')
+    image_sets_main_dir = osp.join(devkit_path, 'ImageSets', 'Main')
+
+    splits_and_dirs = {
+        'train': 'train2017',
+        'test': 'test2017',
+        'val': 'val2017'
+    }
+
+    for split, new_dir_name in splits_and_dirs.items():
+        txt_file = osp.join(image_sets_main_dir, f'{split}.txt')
+        new_folder = osp.join(out_dir, new_dir_name)
+        mkdir_or_exist(new_folder)  # Ensure the directory exists
+
+        with open(txt_file, 'r') as f:
+            img_names = [line.strip() for line in f.readlines()]
+
+        for img_name in img_names:
+            src_img_path = osp.join(jpeg_images_dir, f'{img_name}.jpg')
+            dest_img_path = osp.join(new_folder, f'{img_name}.jpg')
+            shutil.copy(src_img_path, dest_img_path)
+
+import os.path as osp
+import shutil
+
+def copy_images_to_dest(src_dir, dest_dir, img_list_file):
+    """复制图片到目标文件夹"""
+    with open(img_list_file, 'r') as f:
+        lines = f.readlines()
+        img_names = [line.strip() + '.jpg' for line in lines]
+        print(f"Copying {len(img_names)} images from {src_dir} to {dest_dir} ...")
+        for img_name in img_names:
+            src_path = osp.join(src_dir, img_name)
+            dest_path = osp.join(dest_dir, img_name)
+            if not osp.exists(src_path):
+                print(f"Image {src_path} does not exist!")
+                continue
+            shutil.copy(src_path, dest_path)
+            print(f"Copied {img_name} to {dest_dir}")
 
 def main():
     args = parse_args()
     devkit_path = args.devkit_path
     out_dir = args.out_dir if args.out_dir else devkit_path
-    mmcv.mkdir_or_exist(out_dir)
+    mkdir_or_exist(out_dir)
 
     years = []
     if osp.isdir(osp.join(devkit_path, 'VOC2007')):
@@ -207,31 +246,44 @@ def main():
         years.append('2012')
     if '2007' in years and '2012' in years:
         years.append(['2007', '2012'])
+
     if not years:
         raise IOError(f'The devkit path {devkit_path} contains neither '
                       '"VOC2007" nor "VOC2012" subfolder')
+
     out_fmt = f'.{args.out_format}'
     if args.out_format == 'coco':
         out_fmt = '.json'
-    for year in years:
-        if year == '2007':
-            prefix = 'voc07'
-        elif year == '2012':
-            prefix = 'voc12'
-        elif year == ['2007', '2012']:
-            prefix = 'voc0712'
-        for split in ['train', 'val', 'trainval']:
-            dataset_name = prefix + '_' + split
-            print(f'processing {dataset_name} ...')
-            cvt_annotations(devkit_path, year, split,
-                            osp.join(out_dir, dataset_name + out_fmt))
-        if not isinstance(year, list):
-            dataset_name = prefix + '_test'
-            print(f'processing {dataset_name} ...')
-            cvt_annotations(devkit_path, year, 'test',
-                            osp.join(out_dir, dataset_name + out_fmt))
-    print('Done!')
 
+    for year in years:
+        if isinstance(year, list):
+            multi_year = year
+        else:
+            multi_year = [year]
+
+        for y in multi_year:
+            for split in ['train', 'val']:
+                if split == 'train':
+                    dataset_name = 'instances_train2017'
+                    sub_folder = 'train2017'
+                elif split == 'val':
+                    dataset_name = 'instances_val2017'
+                    sub_folder = 'val2017'
+                else:
+                    continue
+
+                print(f'processing {dataset_name} for VOC{y} ...')
+                cvt_annotations(devkit_path, y, split,
+                                osp.join(out_dir, dataset_name + out_fmt))
+
+                # 创建并复制图片到对应的文件夹
+                img_out_dir = osp.join(out_dir, "..", sub_folder, f'VOC{y}', 'JPEGImages')
+                mkdir_or_exist(img_out_dir)
+                img_list_file = osp.join(devkit_path, f'VOC{y}', 'ImageSets', 'Main', f'{split}.txt')
+                src_img_dir = osp.join(devkit_path, f'VOC{y}', 'JPEGImages')
+                copy_images_to_dest(src_img_dir, img_out_dir, img_list_file)
+
+    print('Done!')
 
 if __name__ == '__main__':
     main()

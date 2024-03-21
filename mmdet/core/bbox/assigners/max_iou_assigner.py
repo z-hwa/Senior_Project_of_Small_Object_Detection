@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import torch
 
 from ..builder import BBOX_ASSIGNERS
@@ -23,11 +22,6 @@ class MaxIoUAssigner(BaseAssigner):
         min_pos_iou (float): Minimum iou for a bbox to be considered as a
             positive bbox. Positive samples can have smaller IoU than
             pos_iou_thr due to the 4th step (assign max IoU sample to each gt).
-            `min_pos_iou` is set to avoid assigning bboxes that have extremely
-            small iou with GT as positive samples. It brings about 0.3 mAP
-            improvements in 1x schedule but does not affect the performance of
-            3x schedule. More comparisons can be found in
-            `PR #7464 <https://github.com/open-mmlab/mmdetection/pull/7464>`_.
         gt_max_assign_all (bool): Whether to assign all bboxes with the same
             highest overlap with some gt to that gt.
         ignore_iof_thr (float): IoF threshold for ignoring bboxes (if
@@ -52,7 +46,8 @@ class MaxIoUAssigner(BaseAssigner):
                  ignore_wrt_candidates=True,
                  match_low_quality=True,
                  gpu_assign_thr=-1,
-                 iou_calculator=dict(type='BboxOverlaps2D')):
+                 iou_calculator=dict(type='BboxOverlaps2D'),
+                 assign_metric='iou'):
         self.pos_iou_thr = pos_iou_thr
         self.neg_iou_thr = neg_iou_thr
         self.min_pos_iou = min_pos_iou
@@ -62,6 +57,7 @@ class MaxIoUAssigner(BaseAssigner):
         self.gpu_assign_thr = gpu_assign_thr
         self.match_low_quality = match_low_quality
         self.iou_calculator = build_iou_calculator(iou_calculator)
+        self.assign_metric = assign_metric
 
     def assign(self, bboxes, gt_bboxes, gt_bboxes_ignore=None, gt_labels=None):
         """Assign gt to bboxes.
@@ -108,7 +104,7 @@ class MaxIoUAssigner(BaseAssigner):
             if gt_labels is not None:
                 gt_labels = gt_labels.cpu()
 
-        overlaps = self.iou_calculator(gt_bboxes, bboxes)
+        overlaps = self.iou_calculator(gt_bboxes, bboxes, mode=self.assign_metric)
 
         if (self.ignore_iof_thr > 0 and gt_bboxes_ignore is not None
                 and gt_bboxes_ignore.numel() > 0 and bboxes.numel() > 0):
@@ -194,7 +190,7 @@ class MaxIoUAssigner(BaseAssigner):
             # For example, if bbox A has 0.9 and 0.8 iou with GT bbox 1 & 2,
             # bbox 1 will be assigned as the best target for bbox A in step 3.
             # However, if GT bbox 2's gt_argmax_overlaps = A, bbox A's
-            # assigned_gt_inds will be overwritten to be bbox 2.
+            # assigned_gt_inds will be overwritten to be bbox B.
             # This might be the reason that it is not used in ROI Heads.
             for i in range(num_gts):
                 if gt_max_overlaps[i] >= self.min_pos_iou:

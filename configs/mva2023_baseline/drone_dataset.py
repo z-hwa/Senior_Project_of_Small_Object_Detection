@@ -1,7 +1,7 @@
-from set_lib_dir import LIB_ROOT_DIR
+# from set_lib_dir import LIB_ROOT_DIR
 
 dataset_type = 'DroneDataset'  
-data_root = LIB_ROOT_DIR + '/data/'
+data_root = "/root/Document/MVA2023SmallObjectDetection4SpottingBirds" + '/data/'
 
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
@@ -60,7 +60,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=16,
+    samples_per_gpu=8,
     workers_per_gpu=4,
     train=dict(
         type=dataset_type,

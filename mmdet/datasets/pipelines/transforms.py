@@ -2850,6 +2850,8 @@ class YOLOXHSVRandomAug:
         return repr_str
 
 
+# 修改過後的copy paste適用於沒有mask的情況
+# 會透過bbox生成對應的mask 並複製貼上目標
 @PIPELINES.register_module()
 class CopyPaste:
     """Simple Copy-Paste is a Strong Data Augmentation Method for Instance
@@ -2894,6 +2896,7 @@ class CopyPaste:
         self.bbox_occluded_thr = bbox_occluded_thr
         self.mask_occluded_thr = mask_occluded_thr
         self.selected = selected
+        self.past_by_box = False
 
     def get_indexes(self, dataset):
         """Call function to collect indexes.s.
@@ -2904,6 +2907,40 @@ class CopyPaste:
             list: Indexes.
         """
         return random.randint(0, len(dataset))
+
+    def gen_masks_from_bboxes(self, bboxes, img_shape):
+        """Generate gt_masks based on gt_bboxes.
+        Args:
+            bboxes (list): The bboxes's list.
+            img_shape (tuple): The shape of image.
+        Returns:
+            BitmapMasks
+        """
+        self.past_by_box = True
+        img_h, img_w = img_shape[:2]
+        xmin, ymin = bboxes[:, 0:1], bboxes[:, 1:2]
+        xmax, ymax = bboxes[:, 2:3], bboxes[:, 3:4]
+        gt_masks = np.zeros((len(bboxes), img_h, img_w), dtype=np.uint8)
+        for i in range(len(bboxes)):
+            gt_masks[i,
+                     int(ymin[i]):int(ymax[i]),
+                     int(xmin[i]):int(xmax[i])] = 1
+        return BitmapMasks(gt_masks, img_h, img_w)
+
+    def get_gt_masks(self, result):
+        """Get gt_masks originally or generated based on bboxes.
+        If gt_masks is not contained in results,
+        it will be generated based on gt_bboxes.
+        Args:
+            results (dict): Result dict.
+        Returns:
+            BitmapMasks: gt_masks, originally or generated based on bboxes.
+        """
+        if result.get('gt_masks', None) is not None:
+            return result['gt_masks']
+        else:
+            return self.gen_masks_from_bboxes(
+                result.get('gt_bbox', []), result['img'].shape)
 
     def __call__(self, results):
         """Call function to make a copy-paste of image.
@@ -2918,6 +2955,13 @@ class CopyPaste:
         num_images = len(results['mix_results'])
         assert num_images == 1, \
             f'CopyPaste only supports processing 2 images, got {num_images}'
+        
+         # Get gt_masks originally or generated based on bboxes.
+        results['gt_masks'] = self.get_gt_masks(results)
+        # only one mix picture
+        results['mix_results'][0]['gt_masks'] = self.get_gt_masks(
+            results['mix_results'][0])
+        
         if self.selected:
             selected_results = self._select_object(results['mix_results'][0])
         else:

@@ -68,7 +68,7 @@ class CustomDataset(Dataset):
                  filter_empty_gt=True,
                  file_client_args=dict(backend='disk')):
         self.ann_file = ann_file
-        self.data_root = data_root
+        self.data_root = data_root  # init data root
         self.img_prefix = img_prefix
         self.seg_prefix = seg_prefix
         self.proposal_file = proposal_file
@@ -126,6 +126,7 @@ class CustomDataset(Dataset):
             self._set_group_flag()
 
         # processing pipeline
+        # 實例化圖像增強的class
         self.pipeline = Compose(pipeline)
 
     def __len__(self):
@@ -213,7 +214,7 @@ class CustomDataset(Dataset):
         """
 
         if self.test_mode:
-            return self.prepare_test_img(idx)
+            return self.prepare_test_img(idx)   # 透過idx讀取data，接著prepare_test_img完成data的圖像增強
         while True:
             data = self.prepare_train_img(idx)
             if data is None:

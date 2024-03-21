@@ -47,5 +47,5 @@ lr_config = dict(
 runner = dict(max_epochs=140)
 
 # Avoid evaluation and saving weights too frequently
-evaluation = dict(interval=5, metric='bbox')
+evaluation = dict(interval=10, metric='bbox')
 checkpoint_config = dict(interval=5)
