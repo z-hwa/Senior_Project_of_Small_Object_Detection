@@ -14,7 +14,7 @@ from .transforms import (Albu, CopyPaste, CutOut, Expand, MinIoURandomCrop,
                          MixUp, Mosaic, Normalize, Pad, PhotoMetricDistortion,
                          RandomAffine, RandomCenterCropPad, RandomCrop,
                          RandomFlip, RandomShift, Resize, SegRescale,
-                         YOLOXHSVRandomAug)
+                         YOLOXHSVRandomAug, MVARandomCrop, MVAPasteBirds)
 
 # ------------------
 from .loading import LoadHardNegatives
@@ -31,5 +31,5 @@ __all__ = [
     'InstaBoost', 'RandomCenterCropPad', 'AutoAugment', 'CutOut', 'Shear',
     'Rotate', 'ColorTransform', 'EqualizeTransform', 'BrightnessTransform',
     'ContrastTransform', 'Translate', 'RandomShift', 'Mosaic', 'MixUp',
-    'RandomAffine', 'YOLOXHSVRandomAug', 'CopyPaste'
+    'RandomAffine', 'YOLOXHSVRandomAug', 'CopyPaste', 'MVARandomCrop', 'MVAPasteBirds'
 ]

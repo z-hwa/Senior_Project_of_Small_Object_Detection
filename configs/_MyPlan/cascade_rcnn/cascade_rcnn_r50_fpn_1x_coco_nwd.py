@@ -1,6 +1,7 @@
 _base_ = [
     './drone_dataset_800.py',
-    '../../_base_/schedules/schedule_1x.py', '../../_base_/default_runtime.py'
+    '../../_base_/schedules/schedule_1x.py',
+    '../../_base_/default_runtime.py'
 ]
 
 # model settings
@@ -206,4 +207,4 @@ optimizer = dict(type='SGD', lr=0.005, momentum=0.9, weight_decay=0.0001)
 
 # Avoid evaluation and saving weights too frequently
 evaluation = dict(interval=5, metric='bbox')
-checkpoint_config = dict(interval=1, max_keep_ckpts=3)
+checkpoint_config = dict(interval=1)

@@ -12,7 +12,7 @@ GPU_NUM=1
 echo "###############################"
 echo "Step 1: normal training on data/drone2021"
 echo "###############################"
-bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco_nwd_crop800.py $GPU_NUM
+bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn/cascade_internimage_xl_fpn_100e_coco_nwd.py $GPU_NUM
 
 
 ###############################
@@ -21,7 +21,7 @@ bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn/cascade_rcnn_r50_fpn_1x_c
 echo "###############################"
 echo "Step 2: fine-tuning on data/mva2023_sod4bird_train"
 echo "###############################"
-bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn_finetune/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800.py $GPU_NUM
+bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn_finetune/cascade_internimage_xl_fpn_100e_coco_nwd_finetune_cp8.py $GPU_NUM
 
 
 ###############################
@@ -81,11 +81,12 @@ bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn_NWD_wasserstein/cascade-r
 
 ###############################
 # Step 5: To generate the predictions for submission, the result will be saved in results.bbox.json.
+# 要上傳的是.json壓縮的檔案
 ###############################
 echo "###############################"
 echo "Step 5: To generate the predictions for submission, the result will be saved in results.bbox.json."
 echo "###############################"
-bash tools/dist_test.sh configs/_MyPlan/cascade_rcnn_inference/cascade_rcnn_r50_fpn1x_coco_inference.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800/epoch_40.pth \
+bash tools/dist_test.sh work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic2/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic2.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic2/epoch_72.pth \
 1 --format-only --eval-options jsonfile_prefix=results
 
 _time=`date +%Y%m%d%H%M`
@@ -126,28 +127,27 @@ python tools/analysis_tools/analyze_results.py \
 # --show-score-thr: 能够展示的概率阈值，默认为 0
 # --cfg-options: 如果指定，可根据指定键值对覆盖更新配置文件的对应选项
 
-# 圖片展示的指令
-python tools/test.py configs/_MyPlan/cascade_rcnn_NWD_wasserstein/cascade-rcnn_r50-fpn_140e_coco_finetune_NWD_wasserstein.py work_dirs/cascade-rcnn_r50-fpn_140e_coco_finetune_NWD_wasserstein/latest.pth --show
+# 比較結果指令
+python tools/analysis_tools/analyze_results.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic_val.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/result_val/result_val.pkl work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/result_val/ --topk 100
 
-### 查看訓練歷史
-python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade-rcnn_r50-fpn_140e_coco_hard_negative_training/20240207_122631.log.json --out vis_log --keys loss
+python tools/analysis_tools/analyze_results.py configs/_MyPlan/cascade_rcnn_finetune/cascade_rcnn_r50_fpn_1x_coco_finetune.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune/result_train/result_train.pkl work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune/result_train/ --topk 100
 
-### 所有定位相關的loss
-python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_r50_fpn_1x_coco_ChangeWeight_lr025/20240219_073753.log.json --keys loss loss_rpn_bbox s0.loss_bbox s1.loss_bbox s2.loss_bbox
+# 模型進行辨識後圖片展示的指令
+python tools/test.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic_val.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/epoch_100.pth --show
 
-### 比較結果指令
-python tools/analysis_tools/analyze_results.py \
-      configs/_MyPlan/cascade_rcnn_inference/cascade_rcnn_r50_fpn1x_coco_inference_drone_RC800.py \  
-      work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800/result_drone/result.pkl \
-      work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800/result_drone/ \
-      --topk 100
+# 查看訓練歷史
+### 儲存為檔案 
+python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/20240629_131115.log.json --out vis_log --keys loss
+### 直接展示
+python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/20240629_131115.log.json --keys loss
 
-### 比較
-python tools/analysis_tools/analyze_results.py configs/_MyPlan/cascade_rcnn_inference/cascade_rcnn_r50_fpn1x_coco_inference_RC800.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800/result_mva4sb_val/result.pkl work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800/result_mva4sb_val/ --topk 100
+# 所有定位相關的loss
+python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd/20240825_154123.log.json --keys loss loss_rpn_bbox s0.loss_bbox s1.loss_bbox s2.loss_bbox
 
 ### 生成centernet的pkl
-python tools/test.py configs/_MyPlan/cascade_rcnn_inference/cascade_rcnn_r50_fpn1x_coco_inference_drone_RC800.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800/epoch_40.pth --out result.pkl
+python tools/test.py work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd_finetune/cascade_internimage_xl_fpn_100e_coco_nwd_finetune.py work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd_finetune/epoch_40.pth --out result.pkl
+python tools/test.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic_val.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/epoch_100.pth --out result_val.pkl
 
 ### browse dataset
 python tools/misc/browse_dataset.py configs/_MyPlan/cascade_rcnn_finetune/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800.py [--show-interval ${SHOW_INTERVAL}]
-python tools/misc/browse_dataset.py configs/_MyPlan/cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco_crop800.py --show 0
+python tools/misc/browse_dataset.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic_val.py --show 0

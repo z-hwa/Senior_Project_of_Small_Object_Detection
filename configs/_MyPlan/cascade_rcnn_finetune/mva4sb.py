@@ -8,7 +8,12 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='LoadImageFromFile', to_float32=True, color_type='color'), 
     dict(type='LoadAnnotations', with_bbox=True), 
-    dict(type='RandomCrop', crop_size=(800, 800), allow_negative_crop=True),
+    dict( 
+        type='MVARandomCrop',
+        crop_size=(800,800),
+        must_include_bbox_ratio=0.),
+    dict(type='MVAPasteBirds',
+         bbox_path = "data/automatic_bird2/"),
     # dict(type='Resize', img_scale=(800, 800), keep_ratio=True),
     dict(
         type='PhotoMetricDistortion',
@@ -17,6 +22,7 @@ train_pipeline = [
         saturation_range=(0.5, 1.5),
         hue_delta=18),
     dict(type='RandomFlip', flip_ratio=0.5),
+    dict(type='Resize', img_scale=(800,800), keep_ratio=True, override=True),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='DefaultFormatBundle'),
     dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
@@ -57,6 +63,6 @@ data = dict(
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'mva2023_sod4bird_train/annotations/split_val_coco.json',
-        img_prefix=data_root + 'mva2023_sod4bird_train/images/',
+        ann_file=data_root + 'mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json',
+        img_prefix=data_root + 'mva2023_sod4bird_pub_test/images/',
         pipeline=test_pipeline))

@@ -3,6 +3,7 @@ import copy
 import inspect
 import math
 import warnings
+import os
 
 import cv2
 import mmcv
@@ -13,6 +14,8 @@ from mmdet.core import BitmapMasks, PolygonMasks, find_inside_bboxes
 from mmdet.core.evaluation.bbox_overlaps import bbox_overlaps
 from mmdet.utils import log_img_scale
 from ..builder import PIPELINES
+
+from typing import Tuple, Union
 
 try:
     from imagecorruptions import corrupt
@@ -3053,3 +3056,252 @@ class CopyPaste:
         repr_str += f'mask_occluded_thr={self.mask_occluded_thr}, '
         repr_str += f'selected={self.selected}, '
         return repr_str
+
+@PIPELINES.register_module()
+class MVARandomCrop():
+    def __init__(self,
+                 crop_size=(640, 640),
+                 must_include_bbox_ratio=0.5):
+        self.crop_size = crop_size
+        self.empty_ratio = 1 - must_include_bbox_ratio
+        
+        # The key correspondence from bboxes to labels and masks.
+        self.bbox2label = {
+            'gt_bboxes': 'gt_labels',
+            'gt_bboxes_ignore': 'gt_labels_ignore'
+        }
+        self.bbox2mask = {
+            'gt_bboxes': 'gt_masks',
+            'gt_bboxes_ignore': 'gt_masks_ignore'
+        }
+
+    def _crop_data(self, results, crop_box):
+        for key in results.get('img_fields', ['img']):
+            img = results[key]
+            crop_x1, crop_y1, crop_x2, crop_y2 = crop_box
+
+            # crop the image
+            img = img[crop_y1:crop_y2, crop_x1:crop_x2, ...]
+            img_shape = img.shape
+            results[key] = img
+        results['img_shape'] = img_shape
+
+        # crop bboxes accordingly and clip to the image boundary
+        for key in results.get('bbox_fields', []):
+            # e.g. gt_bboxes and gt_bboxes_ignore
+            bbox_offset = np.array([crop_x1, crop_y1, crop_x1, crop_y1],
+                                   dtype=np.float32)
+            bboxes = results[key] - bbox_offset
+            bboxes[:, 0::2] = np.clip(bboxes[:, 0::2], 0, img_shape[1])
+            bboxes[:, 1::2] = np.clip(bboxes[:, 1::2], 0, img_shape[0])
+            valid_inds = (bboxes[:, 2] > bboxes[:, 0]) & (
+                bboxes[:, 3] > bboxes[:, 1])
+            results[key] = bboxes[valid_inds, :]
+            # label fields. e.g. gt_labels and gt_labels_ignore
+            label_key = self.bbox2label.get(key)
+            if label_key in results:
+                results[label_key] = results[label_key][valid_inds]
+
+            # mask fields, e.g. gt_masks and gt_masks_ignore
+            mask_key = self.bbox2mask.get(key)
+            if mask_key in results:
+                results[mask_key] = results[mask_key][
+                    valid_inds.nonzero()[0]].crop(
+                        np.asarray([crop_x1, crop_y1, crop_x2, crop_y2]))
+
+
+        # crop semantic seg
+        for key in results.get('seg_fields', []):
+            results[key] = results[key][crop_y1:crop_y2, crop_x1:crop_x2]
+
+        return results
+
+    def __call__(self, results: dict) -> Union[dict, None]:
+        """The random crop transform function.
+
+        Args:
+            results (dict): The result dict.
+
+        Returns:
+            dict: The result dict.
+        """
+        return_empty = False
+        if results.get('gt_bboxes', None) is None or len(
+                results['gt_bboxes']) == 0 or random.rand() < self.empty_ratio:
+            return_empty = True
+        
+
+        orig_img_h, orig_img_w = results['img'].shape[:2]
+        gt_bboxes = results['gt_bboxes']
+
+        if return_empty:
+            top = random.randint(orig_img_h-self.crop_size[0]+1)
+            bottom = top + self.crop_size[0]
+            left = random.randint(orig_img_w-self.crop_size[1]+1)
+            right = left + self.crop_size[1]
+
+        else:
+            bbox = gt_bboxes[random.randint(len(gt_bboxes))]
+            center = ((bbox[2]+bbox[0])//2, (bbox[3]+bbox[1])//2) # (x, y)
+            if center[0] < self.crop_size[0]: # too left
+                left = random.randint(center[0])
+                right = left + self.crop_size[0]
+            else:
+                right = random.randint(center[0], min(center[0] + self.crop_size[0], orig_img_w))
+                left = right - self.crop_size[0]
+
+            if center[1] < self.crop_size[1]: # too top
+                top = random.randint(center[1])
+                bottom = top + self.crop_size[1]
+            else:
+                bottom = random.randint(center[1], min(center[1] + self.crop_size[1], orig_img_h))
+                top = bottom - self.crop_size[1]
+
+        crop_box = [left, top, right, bottom]
+        results = self._crop_data(results, crop_box)
+        return results
+
+    def __repr__(self) -> str:
+        repr_str = self.__class__.__name__
+        repr_str += f'(crop_size={self.crop_size}, '
+        repr_str += f'must_include_bbox_ratio={1-self.empty_ratio})'
+        return repr_str
+
+@PIPELINES.register_module()
+class MVAPasteBirds:
+    """Simple Copy-Paste is a Strong Data Augmentation Method for Instance
+    Segmentation The simple copy-paste transform steps are as follows:
+
+    1. The destination image is already resized with aspect ratio kept,
+       cropped and padded.
+    2. Randomly select a source image, which is also already resized
+       with aspect ratio kept, cropped and padded in a similar way
+       as the destination image.
+    3. Randomly select some objects from the source image.
+    4. Paste these source objects to the destination image directly,
+       due to the source and destination image have the same size.
+    5. Update object masks of the destination image, for some origin objects
+       may be occluded.
+    6. Generate bboxes from the updated destination masks and
+       filter some objects which are totally occluded, and adjust bboxes
+       which are partly occluded.
+    7. Append selected source bboxes, masks, and labels.
+
+    Args:
+        max_num_pasted (int): The maximum number of pasted objects.
+            Default: 100.
+        bbox_occluded_thr (int): The threshold of occluded bbox.
+            Default: 10.
+        mask_occluded_thr (int): The threshold of occluded mask.
+            Default: 300.
+        selected (bool): Whether select objects or not. If select is False,
+            all objects of the source image will be pasted to the
+            destination image.
+            Default: True.
+    """
+
+    def __init__(
+        self,
+        bbox_path="data/birds/",
+        minW=5,
+        maxW=80
+    ):
+        self.bbox_path = bbox_path
+        self.img_file_path = os.listdir(self.bbox_path)
+        self.img_file_path = list(filter(file_filter, self.img_file_path))
+        self.minW = minW
+        self.maxW = maxW
+
+    def __call__(self, results):
+        """Call function to make a copy-paste of image.
+
+        Args:
+            results (dict): Result dict.
+        Returns:
+            dict: Result dict with copy-paste transformed.
+        """
+        new_img = results["img"]
+        h, w = new_img.shape[:2]
+        append_bboxes = []
+        new_bboxes = results["gt_bboxes"]
+        new_labels = results["gt_labels"]
+        n = random.randint(5)
+
+        for _ in range(n):
+            bbox = self.bbox_path + self.img_file_path[random.choice(len(self.img_file_path))]
+            img = cv2.imread(bbox, cv2.IMREAD_UNCHANGED)
+            obj_img = img[:, :, :3]
+            orig_box_w, orig_box_h = obj_img.shape[0:2]
+            
+            box_w = round(random.uniform(self.minW, self.maxW))
+            box_h = int(orig_box_h*box_w/orig_box_w)   
+
+            while(box_h >= 800):
+                box_w = int(box_w * 9/10)
+                box_h = int(orig_box_h*box_w/orig_box_w)   
+
+            obj_img = cv2.resize(obj_img, dsize=(box_w, box_h))
+
+            if w-box_w <=0 or h-box_h <=0:
+                print("\n\n\n\n\n\n")
+                print(bbox)
+                print("w is " + str(w))
+                print("w-boxw is " + str(w-box_w))
+                print("orig_box_w is " + str(orig_box_w))
+                print("boxw is " + str(box_w))
+
+                print("h is " + str(h))
+                print("orig_box_h is " + str(orig_box_h))
+                print("boxh is " + str(box_h))
+                print("h-boxh is " + str(h-box_h))
+                print("\n\n\n\n\n\n")
+
+            x1, y1 = random.randint(w-box_w), random.randint(h-box_h)
+            x2, y2 = x1 + box_w, y1 + box_h
+            region_img = new_img[y1:y2, x1:x2]
+            mask = obj_img != 0
+
+            # fix contrast
+            background_bright = cv2.cvtColor(region_img, cv2.COLOR_BGR2GRAY).mean()
+            contrast = -30
+            brightness = 0
+            if(background_bright <= 125): brightness = -background_bright-20
+            obj_img = obj_img * (contrast/127 + 1) - contrast + brightness # 轉換公式
+            obj_img = np.clip(obj_img, 0, 255)
+            obj_img = np.uint8(obj_img)
+
+            region_img[mask] = obj_img[mask]
+
+            # applying the kernel to the input image
+            size = 5
+            kernel_motion_blur = np.zeros((size, size))
+            kernel_motion_blur[int((size-1)/2), :] = np.ones(size)
+            kernel_motion_blur = kernel_motion_blur / size
+            region_img = cv2.filter2D(region_img, -1, kernel_motion_blur)
+            
+            new_img[y1:y2, x1:x2] = region_img
+            append_bboxes.append([x1, y1, x2, y2])
+
+        if len(append_bboxes):
+            new_bboxes = np.concatenate([new_bboxes, append_bboxes], dtype=np.float32)
+            new_labels = np.concatenate([new_labels, [0]*n], dtype=int)
+
+        results["img"] = new_img
+        results["gt_bboxes"] = new_bboxes
+        results["gt_labels"] = new_labels
+        # you can uncomment it to see the picture
+        # note that you need to create the folder
+        # name = str(random.randint(0, 1000))+'.jpg'
+        # cv2.imwrite('data/generate_birds/'+name, new_img)
+ 
+        return results
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        return repr_str
+
+def file_filter(f):
+    if f[-4:] in ['.png']:
+        return True
+    else:
+        return False

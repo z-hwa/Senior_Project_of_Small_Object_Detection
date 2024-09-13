@@ -50,6 +50,8 @@ def single_gpu_test(model,
                 else:
                     out_file = None
 
+                # print("\n" + img_meta['filename'])
+
                 model.module.show_result(
                     img_show,
                     result[i],
