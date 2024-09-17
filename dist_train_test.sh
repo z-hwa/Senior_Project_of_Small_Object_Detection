@@ -21,7 +21,7 @@ bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn/cascade_internimage_xl_fp
 echo "###############################"
 echo "Step 2: fine-tuning on data/mva2023_sod4bird_train"
 echo "###############################"
-bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn_finetune/cascade_internimage_xl_fpn_100e_coco_nwd_finetune_cp8.py $GPU_NUM
+bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn_finetune/cascade_internimage_xl_fpn_100e_coco_nwd_finetune_800.py $GPU_NUM
 
 
 ###############################

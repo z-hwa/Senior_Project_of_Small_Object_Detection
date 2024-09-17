@@ -13,7 +13,9 @@ train_pipeline = [
         crop_size=(800,800),
         must_include_bbox_ratio=0.),
     dict(type='MVAPasteBirds',
-         bbox_path = "data/automatic_bird2/"),
+         bbox_path = "data/birds/"),
+    # dict(type='MVAPasteBirds',
+    #      bbox_path = "data/automatic_bird2/"),
     # dict(type='Resize', img_scale=(800, 800), keep_ratio=True),
     dict(
         type='PhotoMetricDistortion',
@@ -50,7 +52,7 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=4,
-    workers_per_gpu=4,
+    workers_per_gpu=8,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'mva2023_sod4bird_train/annotations/split_train_coco.json',
