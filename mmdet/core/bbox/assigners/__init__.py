@@ -14,10 +14,11 @@ from .sim_ota_assigner import SimOTAAssigner
 from .task_aligned_assigner import TaskAlignedAssigner
 from .uniform_assigner import UniformAssigner
 from .ranking_assigner import RankingAssigner
+from .adaptive_iou_assigner import AdaptiveIoUAssigner
 
 __all__ = [
     'BaseAssigner', 'MaxIoUAssigner', 'ApproxMaxIoUAssigner', 'AssignResult',
     'PointAssigner', 'ATSSAssigner', 'CenterRegionAssigner', 'GridAssigner',
     'HungarianAssigner', 'RegionAssigner', 'UniformAssigner', 'SimOTAAssigner',
-    'TaskAlignedAssigner', 'MaskHungarianAssigner', 'RankingAssigner'
+    'TaskAlignedAssigner', 'MaskHungarianAssigner', 'RankingAssigner', 'AdaptiveIoUAssigner'
 ]

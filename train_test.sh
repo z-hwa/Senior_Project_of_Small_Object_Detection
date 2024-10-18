@@ -10,7 +10,7 @@ export MKL_NUM_THREADS=16
 echo "###############################"
 echo "Step 1: normal training on data/drone2021"
 echo "###############################"
-bash tools/train.sh configs/_MyPlan/cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco_nwd.py
+bash tools/train.sh configs/_MyPlan/Swin_Transformer/cascade_mask_rcnn_swin_small_patch4_window7_mstrain_480-800_giou_4conv1f_adamw_3x_coco.py
 
 
 ###############################

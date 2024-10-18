@@ -47,3 +47,7 @@ class CascadeRCNN(TwoStageDetector):
             if isinstance(result, dict):
                 result = result['ensemble']
         return super(CascadeRCNN, self).show_result(data, result, **kwargs)
+
+    def set_epoch(self, epoch, epochs):
+        self.roi_head.epoch = epoch
+        self.roi_head.epochs = epochs

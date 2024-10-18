@@ -9,7 +9,8 @@ class SetEpochInfoHook(Hook):
 
     def before_train_epoch(self, runner):
         epoch = runner.epoch
+        epochs = runner.max_epochs
         model = runner.model
         if is_module_wrapper(model):
             model = model.module
-        model.set_epoch(epoch)
+        model.set_epoch(epoch, epochs)

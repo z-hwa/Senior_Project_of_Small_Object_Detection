@@ -30,7 +30,9 @@ class CascadeRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None,
-                 init_cfg=None):
+                 init_cfg=None,
+                 epoch=None,
+                 epochs=None):
         assert bbox_roi_extractor is not None
         assert bbox_head is not None
         assert shared_head is None, \
@@ -38,6 +40,8 @@ class CascadeRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
 
         self.num_stages = num_stages
         self.stage_loss_weights = stage_loss_weights
+        self.epoch = epoch
+        self.epochs = epochs
         super(CascadeRoIHead, self).__init__(
             bbox_roi_extractor=bbox_roi_extractor,
             bbox_head=bbox_head,
@@ -225,6 +229,8 @@ class CascadeRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
             # assign gts and sample proposals
             sampling_results = []
             if self.with_bbox or self.with_mask:
+                bbox_head = self.bbox_head[i] # 獲取head用於後續計算regression box
+
                 bbox_assigner = self.bbox_assigner[i]
                 bbox_sampler = self.bbox_sampler[i]
                 num_imgs = len(img_metas)
@@ -232,9 +238,18 @@ class CascadeRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
                     gt_bboxes_ignore = [None for _ in range(num_imgs)]
 
                 for j in range(num_imgs):
+                    # TODO
+                    # 呼叫iou_assigner計算每個proposal對應的最大iou gt_bbox
+                    # 這樣在get regression的時候，就能regression對應的gt
+                    # 保證維度一是一樣的
+                    # bbox_target: (p, q, 4)
+                    # p is num of gt_bbox in image j
+                    # q is num of proposal list in image j
+                    bbox_target = bbox_head.get_regression_bbox(proposal_list[j], gt_bboxes[j]) # 獲取regression box
+
                     assign_result = bbox_assigner.assign(
                         proposal_list[j], gt_bboxes[j], gt_bboxes_ignore[j],
-                        gt_labels[j])
+                        gt_labels[j], self.epoch, self.epochs, bbox_target)
                     sampling_result = bbox_sampler.sample(
                         assign_result,
                         proposal_list[j],

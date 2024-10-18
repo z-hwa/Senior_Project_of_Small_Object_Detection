@@ -12,7 +12,7 @@ GPU_NUM=1
 echo "###############################"
 echo "Step 1: normal training on data/drone2021"
 echo "###############################"
-bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn/cascade_internimage_xl_fpn_100e_coco_nwd.py $GPU_NUM
+bash tools/dist_train.sh  configs/_MyPlan/Swin_Transformer/cascade_mask_rcnn_swin_small_patch4_window7_mstrain_480-800_giou_4conv1f_adamw_3x_coco.py $GPU_NUM
 
 
 ###############################
@@ -21,7 +21,7 @@ bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn/cascade_internimage_xl_fp
 echo "###############################"
 echo "Step 2: fine-tuning on data/mva2023_sod4bird_train"
 echo "###############################"
-bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn_finetune/cascade_internimage_xl_fpn_100e_coco_nwd_finetune_800.py $GPU_NUM
+bash tools/dist_train.sh  configs/_MyPlan/Swin_Transformer/cascade_mask_rcnn_swin_finetune_adaptive.py $GPU_NUM
 
 
 ###############################
@@ -32,8 +32,8 @@ echo "Step 3: Generate predictions on data/mva2023_sod4bird_train to select hard
 echo "###############################"
 # CONFIG=configs/mva2023_baseline/centernet_resnet18_140e_coco_sample_hard_negative.py
 #CHECKPOINT=work_dirs/centernet_resnet18_140e_coco_finetune/latest.pth
-CONFIG=configs/_MyPlan/cascade_rcnn_mva/cascade_rcnn_r50_fpn_1x_coco_sample_hard_negative.py
-CHECKPOINT=work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800/epoch_40.pth
+CONFIG=work_dirs/cascade_mask_rcnn_swin_finetune/cascade_mask_rcnn_swin_finetune.py
+CHECKPOINT=work_dirs/cascade_mask_rcnn_swin_finetune/epoch_55.pth
 NNODES=${NNODES:-1}
 NODE_RANK=${NODE_RANK:-0}
 PORT=${PORT:-29501}
@@ -64,7 +64,7 @@ python -m torch.distributed.launch \
     --checkpoint $CHECKPOINT \
     --launcher pytorch \
     --generate-hard-negative-samples True \
-    --hard-negative-file work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800/train_coco_hard_negative.json \
+    --hard-negative-file work_dirs/cascade_mask_rcnn_swin_finetune/train_coco_hard_negative.json \
     --hard-negative-config num_max_det=10 pos_iou_thr=1e-5 score_thd=0.05 nms_thd=0.05
     
 # The setting for 'hard-negative-config' is the default setting for generating the hard negative examples. Please feel free to modify it.
@@ -86,7 +86,7 @@ bash tools/dist_train.sh  configs/_MyPlan/cascade_rcnn_NWD_wasserstein/cascade-r
 echo "###############################"
 echo "Step 5: To generate the predictions for submission, the result will be saved in results.bbox.json."
 echo "###############################"
-bash tools/dist_test.sh work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic2/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic2.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic2/epoch_72.pth \
+bash tools/dist_test.sh work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune/epoch_100.pth \
 1 --format-only --eval-options jsonfile_prefix=results
 
 _time=`date +%Y%m%d%H%M`
@@ -133,16 +133,16 @@ python tools/analysis_tools/analyze_results.py work_dirs/cascade_rcnn_r50_fpn_1x
 python tools/analysis_tools/analyze_results.py configs/_MyPlan/cascade_rcnn_finetune/cascade_rcnn_r50_fpn_1x_coco_finetune.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune/result_train/result_train.pkl work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune/result_train/ --topk 100
 
 # 模型進行辨識後圖片展示的指令
-python tools/test.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic_val.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/epoch_100.pth --show
+python tools/test.py work_dirs/cascade_mask_rcnn_swin_finetune/only_change_bacbone_with_pretrained_swin/cascade_mask_rcnn_swin_finetune.py work_dirs/cascade_mask_rcnn_swin_finetune/only_change_bacbone_with_pretrained_swin/epoch_49.pth --show
 
 # 查看訓練歷史
 ### 儲存為檔案 
 python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/20240629_131115.log.json --out vis_log --keys loss
 ### 直接展示
-python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/20240629_131115.log.json --keys loss
+python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_rcnn_swin_finetune/20241002_132555.log.json --keys loss
 
 # 所有定位相關的loss
-python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd/20240825_154123.log.json --keys loss loss_rpn_bbox s0.loss_bbox s1.loss_bbox s2.loss_bbox
+python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_rcnn_swin_finetune/20241005_013245.log.json --keys loss loss_rpn_bbox s0.loss_bbox s1.loss_bbox s2.loss_bbox
 
 ### 生成centernet的pkl
 python tools/test.py work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd_finetune/cascade_internimage_xl_fpn_100e_coco_nwd_finetune.py work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd_finetune/epoch_40.pth --out result.pkl
@@ -150,4 +150,4 @@ python tools/test.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/c
 
 ### browse dataset
 python tools/misc/browse_dataset.py configs/_MyPlan/cascade_rcnn_finetune/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800.py [--show-interval ${SHOW_INTERVAL}]
-python tools/misc/browse_dataset.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic_val.py --show 0
+python tools/misc/browse_dataset.py configs/_MyPlan/Swin_Transformer/cascade_mask_rcnn_swin_finetune.py --show 0
