@@ -172,7 +172,7 @@ class StandaradDeviationIoUAssigner(BaseAssigner):
 
         # 計算正負閾值
         pos_thr = mean_values + self.pos_lower_standard * std_values
-        neg_thr = mean_values + self.neg_iou_thr * std_values
+        neg_thr = mean_values - self.neg_iou_thr * std_values
 
         # for each gt, which anchor best overlaps with it
         # for each gt, the max iou of all proposals
