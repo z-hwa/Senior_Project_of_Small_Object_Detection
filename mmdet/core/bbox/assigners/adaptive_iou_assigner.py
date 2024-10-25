@@ -145,51 +145,8 @@ class AdaptiveIoUAssigner(BaseAssigner):
         Returns:
             :obj:`AssignResult`: The assign result.
         """
+
         num_gts, num_bboxes = overlaps.size(0), overlaps.size(1)
-
-        # 0. 為每個gt_bbox計算aspect ratio
-        widths = gt_bboxes[:, 2] - gt_bboxes[:, 0]  # br_x - tl_x
-        heights = gt_bboxes[:, 3] - gt_bboxes[:, 1]  # br_y - tl_y
-        short_sides = torch.min(widths, heights)
-        long_sides = torch.max(widths, heights)
-        ar = short_sides / long_sides
-
-        # 為每個gt計算t_rp, t_rn
-        iou_max = overlaps.max(dim=1)
-        mp = (4 + ar)/5
-        t_rp = iou_max * ((3 - iou_max**2)/4) * mp
-        t_rn = t_rp * (4 - (iou_max - 1)**2) / 5
-
-        # 計算真實tp, tn
-        tp = torch.max(t_rp, self.tp_min)
-        tn = torch.min(t_rn, self.tn_min)
-
-        # 計算regression box
-        # bbox_target: (p, q, 4)
-        # p is num of gt_bbox in image j
-        # q is num of proposal list in image j
-        # 針對每一個p單獨計算 對於p regression後的box得到 (1, q)
-        # 接著拼接成為(p, q)
-        # 使每一個p的分數都是針對於p regression後的結果
-        #r_iou = self.iou_calculator(gt_bboxes, bbox_target, mode=self.assign_metric)
-
-        # 計算alpha, beta
-        p = epoch / epochs
-        alpha = self.alpha_0
-        if p < 0.1:
-            alpha = 1
-        elif p >= 0.1 and p < 0.5:
-            ((self.alpha_0 - 1)/0.4) * (p - 0.1) + 1
-        else:
-            alpha = self.alpha_0
-
-        beta = 1-alpha
-
-        mu = torch.abs(overlaps - r_iou) 
-
-        # 計算出md
-        d_iou = alpha * overlaps + (1 - alpha) * r_iou - beta * (mu**self.gamma)
-
 
         # 1. assign -1 by default
         assigned_gt_inds = overlaps.new_full((num_bboxes, ),
@@ -214,57 +171,64 @@ class AdaptiveIoUAssigner(BaseAssigner):
                 max_overlaps,
                 labels=assigned_labels)
 
-        # # for each anchor, which gt best overlaps with it
-        # # for each anchor, the max iou of all gts
-        # max_overlaps, argmax_overlaps = overlaps.max(dim=0)
-        # # for each gt, which anchor best overlaps with it
-        # # for each gt, the max iou of all proposals
-        # gt_max_overlaps, gt_argmax_overlaps = overlaps.max(dim=1)
+        # 在正式使用adaptive assigner之前，會傳入epoch==None的進行max iou assigner 用於獲取regression box
+        if epoch == None:
+            return self.assign_wrt_overlaps_max_iou(overlaps, gt_labels)
 
-        # # 2. assign negative: below
-        # # the negative inds are set to be 0
-        # if isinstance(self.neg_iou_thr, float):
-        #     assigned_gt_inds[(max_overlaps >= 0)
-        #                      & (max_overlaps < self.neg_iou_thr)] = 0
-        # elif isinstance(self.neg_iou_thr, tuple):
-        #     assert len(self.neg_iou_thr) == 2
-        #     assigned_gt_inds[(max_overlaps >= self.neg_iou_thr[0])
-        #                      & (max_overlaps < self.neg_iou_thr[1])] = 0
+        # 0. 為每個gt_bbox計算aspect ratio
+        widths = gt_bboxes[:, 2] - gt_bboxes[:, 0]  # br_x - tl_x
+        heights = gt_bboxes[:, 3] - gt_bboxes[:, 1]  # br_y - tl_y
+        short_sides = torch.min(widths, heights)
+        long_sides = torch.max(widths, heights)
+        ar = short_sides / long_sides
 
-        final_overlaps, final_argmax_overlaps = d_iou
+        # 為每個gt計算t_rp, t_rn
+        iou_max, iou_max_idx = overlaps.max(dim=1)
+        mp = (4 + ar)/5
+        t_rp = iou_max * ((3 - iou_max**2)/4) * mp
+        t_rn = t_rp * (4 - (iou_max - 1)**2) / 5
+
+        # 計算真實tp, tn
+        tp = torch.max(t_rp, torch.tensor(self.tp_min))
+        tn = torch.min(t_rn, torch.tensor(self.tn_min))
+
+        # 計算regression box
+        # r_iou = self.iou_calculator(gt_bboxes, bbox_target, mode=self.assign_metric)
+
+        # 計算alpha, beta
+        p = epoch / epochs
+        alpha = self.alpha_0
+        if p < 0.1:
+            alpha = 1
+        elif p >= 0.1 and p < 0.5:
+            ((self.alpha_0 - 1)/0.4) * (p - 0.1) + 1
+        else:
+            alpha = self.alpha_0
+
+        beta = 1-alpha
+
+        # mu = torch.abs(overlaps - r_iou) 
+
+        # 計算出md
+        d_iou = overlaps
+        # d_iou = alpha * overlaps + (1 - alpha) * r_iou - beta * (mu**self.gamma)
+
+        final_overlaps = overlaps
+        max_overlaps = torch.zeros(bboxes.size(0))
 
         # assign neg samples to each anchor
         for i in range(num_gts):
             for j in range(num_bboxes):
-                if final_overlaps[i, j] < tn:
+
+                if final_overlaps[i, j] < tn[i]:
                     # negtive sample
                     neg_overlap_inds = d_iou[i,:] == final_overlaps[i,j]
                     assigned_gt_inds[neg_overlap_inds] = 0
-                elif final_overlaps[i, j] > tp:
+                elif final_overlaps[i, j] > tp[i]:
                     # positive sample
                     pos_overlap_inds = d_iou[i,:] == final_overlaps[i,j]
                     assigned_gt_inds[pos_overlap_inds] = i+1
-
-        # # 3. assign positive: above positive IoU threshold
-        # pos_inds = max_overlaps >= self.pos_iou_thr
-        # assigned_gt_inds[pos_inds] = argmax_overlaps[pos_inds] + 1
-
-        # if self.match_low_quality:
-        #     # Low-quality matching will overwrite the assigned_gt_inds assigned
-        #     # in Step 3. Thus, the assigned gt might not be the best one for
-        #     # prediction.
-        #     # For example, if bbox A has 0.9 and 0.8 iou with GT bbox 1 & 2,
-        #     # bbox 1 will be assigned as the best target for bbox A in step 3.
-        #     # However, if GT bbox 2's gt_argmax_overlaps = A, bbox A's
-        #     # assigned_gt_inds will be overwritten to be bbox B.
-        #     # This might be the reason that it is not used in ROI Heads.
-        #     for i in range(num_gts):
-        #         if gt_max_overlaps[i] >= self.min_pos_iou:
-        #             if self.gt_max_assign_all:
-        #                 max_iou_inds = overlaps[i, :] == gt_max_overlaps[i]
-        #                 assigned_gt_inds[max_iou_inds] = i + 1
-        #             else:
-        #                 assigned_gt_inds[gt_argmax_overlaps[i]] = i + 1
+                    max_overlaps[j] = final_overlaps[i,j]
 
         if gt_labels is not None:
             assigned_labels = assigned_gt_inds.new_full((num_bboxes, ), -1)
@@ -278,3 +242,80 @@ class AdaptiveIoUAssigner(BaseAssigner):
 
         return AssignResult(
             num_gts, assigned_gt_inds, max_overlaps, labels=assigned_labels)
+
+    def assign_wrt_overlaps_max_iou(self, overlaps, gt_labels=None):
+            """Assign w.r.t. the overlaps of bboxes with gts.
+
+            Args:
+                overlaps (Tensor): Overlaps between k gt_bboxes and n bboxes,
+                    shape(k, n).
+                gt_labels (Tensor, optional): Labels of k gt_bboxes, shape (k, ).
+
+            Returns:
+                :obj:`AssignResult`: The assign result.
+            """
+            num_gts, num_bboxes = overlaps.size(0), overlaps.size(1)
+
+            # 1. assign -1 by default
+            assigned_gt_inds = overlaps.new_full((num_bboxes, ),
+                                                -1,
+                                                dtype=torch.long)
+
+            if num_gts == 0 or num_bboxes == 0:
+                # No ground truth or boxes, return empty assignment
+                max_overlaps = overlaps.new_zeros((num_bboxes, ))
+                if num_gts == 0:
+                    # No truth, assign everything to background
+                    assigned_gt_inds[:] = 0
+                if gt_labels is None:
+                    assigned_labels = None
+                else:
+                    assigned_labels = overlaps.new_full((num_bboxes, ),
+                                                        -1,
+                                                        dtype=torch.long)
+                return AssignResult(
+                    num_gts,
+                    assigned_gt_inds,
+                    max_overlaps,
+                    labels=assigned_labels)
+
+            # for each anchor, which gt best overlaps with it
+            # for each anchor, the max iou of all gts
+            max_overlaps, argmax_overlaps = overlaps.max(dim=0)
+            # for each gt, which anchor best overlaps with it
+            # for each gt, the max iou of all proposals
+            gt_max_overlaps, gt_argmax_overlaps = overlaps.max(dim=1)
+
+            # 3. assign positive: above positive IoU threshold
+            pos_inds = max_overlaps >= 0.0
+            assigned_gt_inds[pos_inds] = argmax_overlaps[pos_inds] + 1
+
+            if self.match_low_quality:
+                # Low-quality matching will overwrite the assigned_gt_inds assigned
+                # in Step 3. Thus, the assigned gt might not be the best one for
+                # prediction.
+                # For example, if bbox A has 0.9 and 0.8 iou with GT bbox 1 & 2,
+                # bbox 1 will be assigned as the best target for bbox A in step 3.
+                # However, if GT bbox 2's gt_argmax_overlaps = A, bbox A's
+                # assigned_gt_inds will be overwritten to be bbox B.
+                # This might be the reason that it is not used in ROI Heads.
+                for i in range(num_gts):
+                    if gt_max_overlaps[i] >= self.min_pos_iou:
+                        if self.gt_max_assign_all:
+                            max_iou_inds = overlaps[i, :] == gt_max_overlaps[i]
+                            assigned_gt_inds[max_iou_inds] = i + 1
+                        else:
+                            assigned_gt_inds[gt_argmax_overlaps[i]] = i + 1
+
+            if gt_labels is not None:
+                assigned_labels = assigned_gt_inds.new_full((num_bboxes, ), -1)
+                pos_inds = torch.nonzero(
+                    assigned_gt_inds > 0, as_tuple=False).squeeze()
+                if pos_inds.numel() > 0:
+                    assigned_labels[pos_inds] = gt_labels[
+                        assigned_gt_inds[pos_inds] - 1]
+            else:
+                assigned_labels = None
+
+            return AssignResult(
+                num_gts, assigned_gt_inds, max_overlaps, labels=assigned_labels)

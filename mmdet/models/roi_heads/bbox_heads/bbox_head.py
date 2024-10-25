@@ -592,28 +592,3 @@ class BBoxHead(BaseModule):
             bboxes -= offsets
             batch_dets = torch.cat([bboxes, scores], dim=2)
             return batch_dets, labels
-
-    def get_regression_bbox(self, bboxes, gt_bboxes):
-
-        print('\n\n\n\n')
-        print(bboxes[0, :4].shape, gt_bboxes[0, :4].shape)
-        print('\n\n\n\n')
-
-        result = []
-        for i in range(gt_bboxes.size(0)):
-            gt_bbox = gt_bboxes[i, :4]
-            r_bbox = gt_bbox.repeat(bboxes.size(0), 1)
-
-            offset = self.bbox_coder.encode(bboxes[:, :4], r_bbox)
-            bbox_target = self.bbox_coder.decode(bboxes[:, :4], offset)
-            
-            # concate
-            result.append(bbox_target)
-
-
-        # stack
-        result = torch.stack(result, dim=0)
-
-        print(result.shape) # 3 2000 4
-
-        return result
