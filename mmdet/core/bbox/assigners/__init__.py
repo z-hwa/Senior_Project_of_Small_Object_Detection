@@ -15,10 +15,10 @@ from .task_aligned_assigner import TaskAlignedAssigner
 from .uniform_assigner import UniformAssigner
 from .ranking_assigner import RankingAssigner
 from .adaptive_iou_assigner import AdaptiveIoUAssigner
+from .hierarchical_assigner import HieAssigner
 
 __all__ = [
     'BaseAssigner', 'MaxIoUAssigner', 'ApproxMaxIoUAssigner', 'AssignResult',
     'PointAssigner', 'ATSSAssigner', 'CenterRegionAssigner', 'GridAssigner',
     'HungarianAssigner', 'RegionAssigner', 'UniformAssigner', 'SimOTAAssigner',
-    'TaskAlignedAssigner', 'MaskHungarianAssigner', 'RankingAssigner', 'AdaptiveIoUAssigner'
-]
+    'TaskAlignedAssigner', 'MaskHungarianAssigner', 'RankingAssigner', 'AdaptiveIoUAssigner', 'HieAssigner'
