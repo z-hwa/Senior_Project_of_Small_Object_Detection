@@ -192,6 +192,7 @@ class CascadeRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
         mask_results.update(loss_mask=loss_mask)
         return mask_results
 
+
     def forward_train(self,
                       x,
                       img_metas,
@@ -229,8 +230,6 @@ class CascadeRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
             # assign gts and sample proposals
             sampling_results = []
             if self.with_bbox or self.with_mask:
-                bbox_head = self.bbox_head[i] # 獲取head用於後續計算regression box
-
                 bbox_assigner = self.bbox_assigner[i]
                 bbox_sampler = self.bbox_sampler[i]
                 num_imgs = len(img_metas)
@@ -238,18 +237,18 @@ class CascadeRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
                     gt_bboxes_ignore = [None for _ in range(num_imgs)]
 
                 for j in range(num_imgs):
-                    # TODO
-                    # 呼叫iou_assigner計算每個proposal對應的最大iou gt_bbox
-                    # 這樣在get regression的時候，就能regression對應的gt
-                    # 保證維度一是一樣的
-                    # bbox_target: (p, q, 4)
-                    # p is num of gt_bbox in image j
-                    # q is num of proposal list in image j
-                    bbox_target = bbox_head.get_regression_bbox(proposal_list[j], gt_bboxes[j]) # 獲取regression box
-
-                    assign_result = bbox_assigner.assign(
-                        proposal_list[j], gt_bboxes[j], gt_bboxes_ignore[j],
-                        gt_labels[j], self.epoch, self.epochs, bbox_target)
+                    # original version
+                    if rcnn_train_cfg['assigner']['type'] == 'AdaptiveIoUAssigner':
+                        # adaptive version activated by using hook of setepoch
+                        assign_result = bbox_assigner.assign(
+                            proposal_list[j], gt_bboxes[j], gt_bboxes_ignore[j],
+                            gt_labels[j], self.epoch, self.epochs)
+                    else:
+                        # original version
+                        assign_result = bbox_assigner.assign(
+                            proposal_list[j], gt_bboxes[j], gt_bboxes_ignore[j],
+                            gt_labels[j])
+                        
                     sampling_result = bbox_sampler.sample(
                         assign_result,
                         proposal_list[j],
@@ -257,6 +256,51 @@ class CascadeRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
                         gt_labels[j],
                         feats=[lvl_feat[j][None] for lvl_feat in x])
                     sampling_results.append(sampling_result)
+
+                        # assign gts and sample proposals
+
+            # # calculate regression bbox
+            # rois = bbox2roi([res.bboxes for res in sampling_results])
+            # bbox_results = self._bbox_forward(i, x, rois)
+            # bbox_targets = self.bbox_head[i].get_targets(
+            # sampling_results, gt_bboxes, gt_labels, rcnn_train_cfg)
+
+            # sampling_results = []
+            # if self.with_bbox or self.with_mask:
+            #     bbox_assigner = self.bbox_assigner[i]
+            #     bbox_sampler = self.bbox_sampler[i]
+            #     num_imgs = len(img_metas)
+            #     if gt_bboxes_ignore is None:
+            #         gt_bboxes_ignore = [None for _ in range(num_imgs)]
+
+            #     for j in range(num_imgs):
+            #         # TODO
+            #         # 呼叫iou_assigner計算每個proposal對應的最大iou gt_bbox
+            #         # 這樣在get regression的時候，就能regression對應的gt
+            #         # 保證維度一是一樣的
+            #         # bbox_target: (p, q, 4)
+            #         # p is num of gt_bbox in image j
+            #         # q is num of proposal list in image j
+            #         assign_result=None
+
+            #         if rcnn_train_cfg['assigner']['type'] == 'AdaptiveIoUAssigner':
+            #             # adaptive version activated by using hook of setepoch
+            #             assign_result = bbox_assigner.assign(
+            #                 proposal_list[j], gt_bboxes[j], gt_bboxes_ignore[j],
+            #                 gt_labels[j], self.epoch, self.epochs, bbox_target)
+            #         else:
+            #             # original version
+            #             assign_result = bbox_assigner.assign(
+            #                 proposal_list[j], gt_bboxes[j], gt_bboxes_ignore[j],
+            #                 gt_labels[j])
+                        
+            #         sampling_result = bbox_sampler.sample(
+            #             assign_result,
+            #             proposal_list[j],
+            #             gt_bboxes[j],
+            #             gt_labels[j],
+            #             feats=[lvl_feat[j][None] for lvl_feat in x])
+            #         sampling_results.append(sampling_result)
 
             # bbox head forward and loss
             bbox_results = self._bbox_forward_train(i, x, sampling_results,

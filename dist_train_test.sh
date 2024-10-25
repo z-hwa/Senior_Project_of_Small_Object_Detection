@@ -21,7 +21,7 @@ bash tools/dist_train.sh  configs/_MyPlan/Swin_Transformer/cascade_mask_rcnn_swi
 echo "###############################"
 echo "Step 2: fine-tuning on data/mva2023_sod4bird_train"
 echo "###############################"
-bash tools/dist_train.sh  configs/_MyPlan/Swin_Transformer/cascade_mask_rcnn_swin_finetune_adaptive.py $GPU_NUM
+bash tools/dist_train.sh  configs/_MyPlan/Swin_Transformer/cascade_mask_rcnn_swin_finetune_adaptive_without.py $GPU_NUM
 
 
 ###############################
@@ -142,7 +142,7 @@ python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_
 python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_rcnn_swin_finetune/20241002_132555.log.json --keys loss
 
 # 所有定位相關的loss
-python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_rcnn_swin_finetune/20241005_013245.log.json --keys loss loss_rpn_bbox s0.loss_bbox s1.loss_bbox s2.loss_bbox
+python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_rcnn_swin_finetune_adaptive/20241020_131156.log --keys loss loss_rpn_bbox s0.loss_bbox s1.loss_bbox s2.loss_bbox
 
 ### 生成centernet的pkl
 python tools/test.py work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd_finetune/cascade_internimage_xl_fpn_100e_coco_nwd_finetune.py work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd_finetune/epoch_40.pth --out result.pkl
