@@ -165,7 +165,13 @@ class AdaptiveIoUAssigner(BaseAssigner):
         tn = torch.min(t_rn, self.tn_min)
 
         # 計算regression box
-        r_iou = self.iou_calculator(gt_bboxes, bbox_target, mode=self.assign_metric)
+        # bbox_target: (p, q, 4)
+        # p is num of gt_bbox in image j
+        # q is num of proposal list in image j
+        # 針對每一個p單獨計算 對於p regression後的box得到 (1, q)
+        # 接著拼接成為(p, q)
+        # 使每一個p的分數都是針對於p regression後的結果
+        #r_iou = self.iou_calculator(gt_bboxes, bbox_target, mode=self.assign_metric)
 
         # 計算alpha, beta
         p = epoch / epochs
