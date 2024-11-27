@@ -45,7 +45,7 @@ class BboxDistanceMetric(object):
 
 def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6, constant=12.8):
     assert mode in ['iou', 'iof', 'giou', 'normalized_giou', 'ciou', 'diou', 'nwd',
-                    , 'wd', 'kl','exp_kl','kl_10'], f'Unsupported mode {mode}'
+                    'wd', 'kl','exp_kl','kl_10', 'ntpd'], f'Unsupported mode {mode}'
     # Either the boxes are empty or the length of boxes's last dimenstion is 4
     assert (bboxes1.size(-1) == 4 or bboxes1.size(0) == 0)
     assert (bboxes2.size(-1) == 4 or bboxes2.size(0) == 0)
@@ -142,6 +142,30 @@ def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6, cons
         cious = torch.clamp(cious, min=-1.0, max=1.0)
         
         return cious
+    
+    if mode == 'ntpd':
+        # center1 = (bboxes1[..., :, None, :2] + bboxes1[..., :, None, 2:]) / 2
+        # center2 = (bboxes2[..., None, :, :2] + bboxes2[..., None, :, 2:]) / 2
+        # whs = center1[..., :2] - center2[..., :2]
+
+        distance1 = bboxes1[..., :, None, :2] - bboxes2[..., None, :, :2]
+        distance2 = bboxes1[..., :, None, 2:] - bboxes2[..., None, :, 2:]
+
+        center_distance1 = distance1[..., 0] * distance1[..., 0] + distance1[..., 1] * distance1[..., 1] + eps #
+        center_distance2 = distance2[..., 0] * distance2[..., 0] + distance2[..., 1] * distance2[..., 1] + eps #
+
+        # w1 = bboxes1[..., :, None, 2] - bboxes1[..., :, None, 0]  + eps
+        # h1 = bboxes1[..., :, None, 3] - bboxes1[..., :, None, 1]  + eps
+        # w2 = bboxes2[..., None, :, 2] - bboxes2[..., None, :, 0]  + eps
+        # h2 = bboxes2[..., None, :, 3] - bboxes2[..., None, :, 1]  + eps
+
+        # wh_distance = ((w1 - w2) ** 2 + (h1 - h2) ** 2) / 4
+
+        wasserstein = center_distance1 + center_distance2
+
+        ntpd = 1/(1+wasserstein)
+
+        return ntpd
     
     if mode == 'nwd':
         center1 = (bboxes1[..., :, None, :2] + bboxes1[..., :, None, 2:]) / 2

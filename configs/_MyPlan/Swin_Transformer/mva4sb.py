@@ -15,7 +15,11 @@ train_pipeline = [
         type='MVARandomCrop',
         crop_size=(800,800),
         must_include_bbox_ratio=0.0),
-    dict(type='MVAPasteBirds'),
+    dict(
+        type='MVAPasteBirds',
+        minW=5,
+        maxW=80,
+        num_range_per_image=[0, 5]),
     dict(
         type='PhotoMetricDistortion',
         brightness_delta=32,

@@ -193,7 +193,7 @@ class AdaptiveIoUAssigner(BaseAssigner):
         tn = torch.min(t_rn, torch.tensor(self.tn_min))
 
         # 計算regression box
-        # r_iou = self.iou_calculator(gt_bboxes, bbox_target, mode=self.assign_metric)
+        r_iou = self.iou_calculator(gt_bboxes, bbox_target, mode=self.assign_metric)
 
         # 計算alpha, beta
         p = epoch / epochs
@@ -207,11 +207,10 @@ class AdaptiveIoUAssigner(BaseAssigner):
 
         beta = 1-alpha
 
-        # mu = torch.abs(overlaps - r_iou) 
+        mu = torch.abs(overlaps - r_iou) 
 
         # 計算出md
-        d_iou = overlaps
-        # d_iou = alpha * overlaps + (1 - alpha) * r_iou - beta * (mu**self.gamma)
+        d_iou = alpha * overlaps + (1 - alpha) * r_iou - beta * (mu**self.gamma)
 
         final_overlaps = overlaps
         max_overlaps = torch.zeros(bboxes.size(0))

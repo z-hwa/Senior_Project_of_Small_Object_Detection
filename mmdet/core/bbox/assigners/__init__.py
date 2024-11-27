@@ -16,9 +16,12 @@ from .uniform_assigner import UniformAssigner
 from .ranking_assigner import RankingAssigner
 from .adaptive_iou_assigner import AdaptiveIoUAssigner
 from .hierarchical_assigner import HieAssigner
+from .stardard_deviation_iou_assigner import StandaradDeviationIoUAssigner
+from .dynamic_ratio_assigner import DynamicRatioAssigner
 
 __all__ = [
     'BaseAssigner', 'MaxIoUAssigner', 'ApproxMaxIoUAssigner', 'AssignResult',
     'PointAssigner', 'ATSSAssigner', 'CenterRegionAssigner', 'GridAssigner',
     'HungarianAssigner', 'RegionAssigner', 'UniformAssigner', 'SimOTAAssigner',
-    'TaskAlignedAssigner', 'MaskHungarianAssigner', 'RankingAssigner', 'AdaptiveIoUAssigner', 'HieAssigner'
+    'TaskAlignedAssigner', 'MaskHungarianAssigner', 'RankingAssigner', 'AdaptiveIoUAssigner', 'HieAssigner', 'StandaradDeviationIoUAssigner',
+    'DynamicRatioAssigner']

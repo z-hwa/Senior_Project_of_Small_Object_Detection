@@ -360,16 +360,3 @@ class HieAssigner(BaseAssigner):
         bboxes[..., 3] = center_y2 + new_h2/2
 
         return bboxes
-
-
-
-
-
-
-
- 
-
-    
-
-
-        

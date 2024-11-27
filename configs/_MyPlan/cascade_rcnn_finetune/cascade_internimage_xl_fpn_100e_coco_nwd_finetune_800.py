@@ -35,7 +35,7 @@ model = dict(
         num_outs=5))
 
 # load_from = "work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd/epoch_22.pth"
-resume_from = "work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd_finetune_800/epoch_10.pth"
+# resume_from = "work_dirs/cascade_internimage_xl_fpn_100e_coco_nwd_finetune_800/epoch_10.pth"
 
 # optimizer
 # Based on the default settings of modern detectors, the SGD effect is better

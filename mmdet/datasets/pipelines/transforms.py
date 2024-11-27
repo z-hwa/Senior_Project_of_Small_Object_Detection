@@ -3204,13 +3204,19 @@ class MVAPasteBirds:
         self,
         bbox_path="data/birds/",
         minW=5,
-        maxW=80
+        maxW=80,
+        num_range_per_image=[0, 5]
     ):
+        '''
+        num_range_per_image: 每張圖片的複製上下限
+        '''
+
         self.bbox_path = bbox_path
         self.img_file_path = os.listdir(self.bbox_path)
         self.img_file_path = list(filter(file_filter, self.img_file_path))
         self.minW = minW
         self.maxW = maxW
+        self.num_range_per_image = num_range_per_image
 
     def __call__(self, results):
         """Call function to make a copy-paste of image.
@@ -3225,7 +3231,9 @@ class MVAPasteBirds:
         append_bboxes = []
         new_bboxes = results["gt_bboxes"]
         new_labels = results["gt_labels"]
-        n = random.randint(5)
+        # n = random.randint(5)
+
+        n = random.randint(self.num_range_per_image[0], self.num_range_per_image[1])
 
         for _ in range(n):
             bbox = self.bbox_path + self.img_file_path[random.choice(len(self.img_file_path))]

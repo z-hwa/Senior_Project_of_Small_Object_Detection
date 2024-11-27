@@ -38,9 +38,6 @@ class StandaradDeviationIoUAssigner(BaseAssigner):
     """
 
     def __init__(self,
-                 pos_iou_thr,
-                 neg_iou_thr,
-                 min_pos_iou=.0,
                  gt_max_assign_all=True,
                  ignore_iof_thr=-1,
                  ignore_wrt_candidates=True,
@@ -48,11 +45,8 @@ class StandaradDeviationIoUAssigner(BaseAssigner):
                  gpu_assign_thr=-1,
                  iou_calculator=dict(type='BboxOverlaps2D'),
                  assign_metric='iou',
-                 pos_lower_standard=0,
-                 neg_upper_standard=0):
-        self.pos_iou_thr = pos_iou_thr
-        self.neg_iou_thr = neg_iou_thr
-        self.min_pos_iou = min_pos_iou
+                 pos_lower_standard=0.0,
+                 neg_upper_standard=0.0):
         self.gt_max_assign_all = gt_max_assign_all
         self.ignore_iof_thr = ignore_iof_thr
         self.ignore_wrt_candidates = ignore_wrt_candidates
@@ -150,7 +144,7 @@ class StandaradDeviationIoUAssigner(BaseAssigner):
 
         if num_gts == 0 or num_bboxes == 0:
             # No ground truth or boxes, return empty assignment
-            max_overlaps = overlaps.new_zeros((num_bboxes, ))
+            assign_overlaps = overlaps.new_zeros((num_bboxes, ))
             if num_gts == 0:
                 # No truth, assign everything to background
                 assigned_gt_inds[:] = 0
@@ -163,7 +157,7 @@ class StandaradDeviationIoUAssigner(BaseAssigner):
             return AssignResult(
                 num_gts,
                 assigned_gt_inds,
-                max_overlaps,
+                assign_overlaps,
                 labels=assigned_labels)
 
         # 計算平均值以及標準差
@@ -172,22 +166,43 @@ class StandaradDeviationIoUAssigner(BaseAssigner):
 
         # 計算正負閾值
         pos_thr = mean_values + self.pos_lower_standard * std_values
-        neg_thr = mean_values - self.neg_iou_thr * std_values
+        neg_thr = mean_values - self.neg_upper_standard * std_values
 
         # for each gt, which anchor best overlaps with it
         # for each gt, the max iou of all proposals
         gt_max_overlaps, gt_argmax_overlaps = overlaps.max(dim=1)
+        assign_overlaps, _ = overlaps.max(dim=0)
 
         # 2. assign negative: below
         # the negative inds are set to be 0
         for i in range(num_gts):
-            neg_inds = overlaps[i, :] < neg_thr
+            if(neg_thr[i] <= 0):
+                neg_thr[i] = mean_values[i]
+
+            neg_inds = overlaps[i, :] < neg_thr[i]
             assigned_gt_inds[neg_inds] = 0
+            assign_overlaps[neg_inds] = overlaps[i, neg_inds]
 
-            pos_inds = overlaps[i, :] > pos_thr
-            assigned_gt_inds[pos_thr] = pos_inds + 1
+        for i in range(num_gts):
+            pos_inds = overlaps[i, :] > pos_thr[i]
 
-        print('\n\n\n' + 'negtive:' + str(len(neg_inds)) + '\n' + 'positive:' + str(len(pos_inds)) + '\n\n\n')
+            for index, v in enumerate(pos_inds):
+                # 如果滿足大於pos_thr
+                if(v == True):
+                    # 如果還沒分配gt 或是 被分配為負樣本
+                    if(assigned_gt_inds[index] <= 0):
+                        assigned_gt_inds[index] = i + 1
+                        assign_overlaps[index] = overlaps[i, index]
+                    else:
+                        # 如果已經分配 比較overlaps
+                        if(assign_overlaps[index] < overlaps[i, index]):
+                            assigned_gt_inds[index] = i + 1
+                            assign_overlaps[index] = overlaps[i, index]
+
+
+        # print('negtive:' + str(sum(assigned_gt_inds == 0)) + '\n' + 'positive:' + str(sum(assigned_gt_inds > 0)))
+        # print('negtive:' + str(neg_thr[0]) + '\n' + 'positive:' + str(pos_thr[0]))
+        # input()
 
         if self.match_low_quality:
             # Low-quality matching will overwrite the assigned_gt_inds assigned
@@ -217,4 +232,4 @@ class StandaradDeviationIoUAssigner(BaseAssigner):
             assigned_labels = None
 
         return AssignResult(
-            num_gts, assigned_gt_inds, max_overlaps, labels=assigned_labels)
+            num_gts, assigned_gt_inds, assign_overlaps, labels=assigned_labels)

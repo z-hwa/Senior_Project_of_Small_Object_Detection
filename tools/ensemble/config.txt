@@ -1,0 +1,4 @@
+work_dirs/cascade_mask_rcnn_swin_finetune/results.bbox.json
+work_dirs/cascade_mask_rcnn_swin_finetune_rfla/results.bbox.json
+work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune/results.bbox.json
+work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/results.bbox.json
