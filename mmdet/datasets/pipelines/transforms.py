@@ -908,11 +908,6 @@ class RandomCrop:
         repr_str += f'bbox_clip_border={self.bbox_clip_border})'
         return repr_str
 
-
-
-
-
-
 @PIPELINES.register_module()
 class SegRescale:
     """Rescale semantic segmentation maps.
@@ -3169,36 +3164,6 @@ class MVARandomCrop():
 
 @PIPELINES.register_module()
 class MVAPasteBirds:
-    """Simple Copy-Paste is a Strong Data Augmentation Method for Instance
-    Segmentation The simple copy-paste transform steps are as follows:
-
-    1. The destination image is already resized with aspect ratio kept,
-       cropped and padded.
-    2. Randomly select a source image, which is also already resized
-       with aspect ratio kept, cropped and padded in a similar way
-       as the destination image.
-    3. Randomly select some objects from the source image.
-    4. Paste these source objects to the destination image directly,
-       due to the source and destination image have the same size.
-    5. Update object masks of the destination image, for some origin objects
-       may be occluded.
-    6. Generate bboxes from the updated destination masks and
-       filter some objects which are totally occluded, and adjust bboxes
-       which are partly occluded.
-    7. Append selected source bboxes, masks, and labels.
-
-    Args:
-        max_num_pasted (int): The maximum number of pasted objects.
-            Default: 100.
-        bbox_occluded_thr (int): The threshold of occluded bbox.
-            Default: 10.
-        mask_occluded_thr (int): The threshold of occluded mask.
-            Default: 300.
-        selected (bool): Whether select objects or not. If select is False,
-            all objects of the source image will be pasted to the
-            destination image.
-            Default: True.
-    """
 
     def __init__(
         self,
