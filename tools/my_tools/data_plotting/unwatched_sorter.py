@@ -2,6 +2,11 @@ import re
 from collections import defaultdict
 import os
 
+'''
+# 根據長寬分類沒被找出來的物體
+# 的尺度
+'''
+
 # 動態生成區間列表
 def generate_intervals(start, step, end):
     intervals = []
@@ -23,8 +28,10 @@ def find_interval(value, intervals):
     return (float('inf'), "Out of Range")  # 如果不在範圍內
 
 # 路徑
-input_file = "tools/my_tools/swin_4stage/unwatched_swin_4stage"
-output_file = "tools/my_tools/swin_4stage/classified_sizes_sorted.txt"
+# input_file = "tools/my_tools/swin_4stage/unwatched_swin_4stage"
+# output_file = "tools/my_tools/swin_4stage/classified_sizes_sorted.txt"
+input_file = "tools/my_tools/swin_4stage/background_as_bird.txt"
+output_file = "tools/my_tools/swin_4stage/classified_background_as_bird_sorted.txt"
 
 # 儲存結果
 classified_data = defaultdict(list)
@@ -37,7 +44,7 @@ if not os.path.exists(input_file):
 with open(input_file, "r") as file:
     for line in file:
         # 解析格式：unwatch size: (長, 寬, 其他值)
-        match = re.search(r"unwatch size: \((\d+\.?\d*), (\d+\.?\d*), (\d+)\)", line)
+        match = re.search(r"\s*: \((\d+\.?\d*), (\d+\.?\d*), (\d+)\)", line)
         if match:
             length = float(match.group(1))
             width = float(match.group(2))

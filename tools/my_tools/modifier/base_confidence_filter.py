@@ -1,7 +1,9 @@
 import json
 
+'''
 # 將json檔案的置信度
 # 進一步調整
+'''
 
 def load_json(file_path):
     """讀取 JSON 檔案"""
@@ -20,7 +22,7 @@ def filter_by_confidence(data, threshold):
 # 主程式
 input_file = "work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/results_005.json"  # 輸入檔案名稱
 output_file = "filtered_data.json"  # 輸出檔案名稱
-confidence_threshold = 0.2  # 設定置信度閾值
+confidence_threshold = 0.1  # 設定置信度閾值
 
 # 讀取資料
 data = load_json(input_file)

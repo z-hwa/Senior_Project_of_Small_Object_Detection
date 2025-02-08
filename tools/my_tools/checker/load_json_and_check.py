@@ -25,9 +25,50 @@ from tkinter import filedialog
 # total_background_as_bird: 3904
 # Time since last output: 2.97 seconds
 
+
+# 用於解析布林值的函數
+def str2bool(value):
+    '''用於解析布林值的函數'''
+
+    if value.lower() in ('true', '1', 't', 'y', 'yes'):
+        return True
+    elif value.lower() in ('false', '0', 'f', 'n', 'no'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def setting_parser():
+    '''設定命令列參數解析'''
+
+    
+    # 設定預設路徑和參數
+    default_show_image = True
+    default_confidence_threshold = 0.05
+    default_process_info = True
+    default_return_result = False
+    default_get_unmatched = False
+    default_get_gt = False
+    default_get_background_as_bird = False
+
+    # 設定命令列參數解析
+    parser = argparse.ArgumentParser(description="Custom Image Navigator")
+    parser.add_argument('--custom', action='store_true', help='Enable custom path selection')
+    parser.add_argument('--show_image', type=str2bool, default=default_show_image, help='Whether to show image')
+    parser.add_argument('--confidence_threshold', type=float, default=default_confidence_threshold, help='Confidence threshold')
+    parser.add_argument('--process_info', type=str2bool, default=default_process_info, help='Whether to process info')
+    parser.add_argument('--return_result', type=str2bool, default=default_return_result, help='Whether to return result')
+    parser.add_argument('--get_unmatched', type=str2bool, default=default_get_unmatched, help='Whether to get unmatched info')
+    parser.add_argument('--get_gt', type=str2bool, default=default_get_gt, help='Whether to get watched result')
+    parser.add_argument('--get_background_as_bird', type=str2bool, default=default_get_background_as_bird, help='Whether to get false positive')
+
+    # 解析命令列參數
+    args = parser.parse_args()
+
+    return args
+
 class ImageNavigator:
     def __init__(self, dataset, json_file, cfg, show_image=True, confidence_threshold=0.05, process_info=True, return_result=False,
-                 get_unwatched=True, get_watched=True):
+                 get_unwatched=False, get_gt=False, get_background_as_bird=False):
         self.dataset = dataset
         self.json_file = json_file
         self.cfg = cfg
@@ -38,10 +79,14 @@ class ImageNavigator:
         self.return_result = return_result
         
         # 儲存未匹配的鳥類框大小
+        self.gt_bird_sizes = []
+        self.get_gt = get_gt
+
         self.unmatched_bird_sizes = []
-        self.watched_bird_sizes = []
-        self.get_watched = get_watched
         self.get_unmatched = get_unwatched
+        
+        self.background_as_bird_size = []
+        self.get_background_as_bird = get_background_as_bird
 
         # 初始化累積結果
         self.total_gt_birds = 0
@@ -138,11 +183,20 @@ class ImageNavigator:
                 if self.get_unmatched:
                     self.unmatched_bird_sizes.append((width, height, image_id))
 
-            if self.get_watched:
+            if self.get_gt:
                 width = gt[2] - gt[0]
                 height = gt[3] - gt[1]
                 area = width * height
-                self.watched_bird_sizes.append((width, height, image_id))
+                self.gt_bird_sizes.append((width, height, image_id))
+
+        if self.get_background_as_bird == True:
+            # 計算未匹配到真實框的預測框，即為背景被當作鳥類的情況
+            for pred_idx, pred in enumerate(pred_bboxes):
+                if not pred_matched[pred_idx]:
+                    width = gt[2] - gt[0]
+                    height = gt[3] - gt[1]
+                    area = width * height
+                    self.background_as_bird_size.append((width, height, image_id))
 
         background_as_bird = np.sum(~pred_matched)
 
@@ -153,6 +207,10 @@ class ImageNavigator:
         }
 
     def analyze_result(self):
+        '''
+        分析結果的主函數
+        透過呼叫analyze_prediction來針對每張圖片的結果進行分析
+        '''
         for self.index in range(0, len(self.dataset)):
             # 更新當前顯示的圖片
             self.sample = self.dataset[self.index]
@@ -227,8 +285,11 @@ class ImageNavigator:
         if self.return_result:
             return self.total_gt_birds, self.total_correct_predictions, self.total_bird_as_background, self.total_background_as_bird
 
-    # 根據 image_id 進行檢索
     def search_by_image_id(self, image_id):
+        '''
+        根據 image_id 進行檢索
+        '''
+
         result = self.predictions[self.predictions["image_id"] == image_id]
         if result.empty:
             # 返回空列表，或其他預設的資料結構
@@ -236,6 +297,10 @@ class ImageNavigator:
         return result
 
     def update_image(self):
+        '''
+        更新當前畫面顯示的圖片
+        '''
+        
         # 更新當前顯示的圖片
         sample = self.dataset[self.index]
         img = sample['img']
@@ -304,6 +369,10 @@ class ImageNavigator:
         self.fig.canvas.draw()
 
     def plot_image_with_boxes(self, image, boxes, ax, title=""):
+        '''
+        為圖片添加bboxes 用於可視化
+        '''
+        
         ax.imshow(image)
         ax.set_title(title)
         ax.axis('off')
@@ -332,43 +401,68 @@ class ImageNavigator:
                         bbox=dict(facecolor='white', edgecolor='none', alpha=0.3))
 
     def next_image(self, event):
-        # 切換到下一張圖片
+        '''切換到下一張圖片'''
         self.index += 1
         if self.index >= len(self.dataset):
             self.index = 0  # 如果是最後一張，回到第一張
         self.update_image()
 
-# 設定預設路徑和參數
+def print_unwatched(navigator=None):
+    '''
+    輸出true negative的目標
+    '''
+
+    for i in range(0, len(navigator.watched_bird_sizes)):
+        print(f"unwatch size: {navigator.watched_bird_sizes[i]}")
+
+def output_analyse_data_file(data:list=None , file_name="analyse_data.txt"):
+    '''將資訊輸出到文件'''
+
+    # 將未檢測鳥類的大小資訊輸出到文件
+    output_file = file_name
+    with open(output_file, "w") as file:
+        for i in range(len(data)):
+            bird_size = data[i]
+            file.write(f"data: {bird_size}\n")
+
+def output_background_as_bird_to_file(navigator: ImageNavigator=None , file_name="background_as_bird.txt"):
+    '''將未檢測鳥類的大小資訊輸出到文件'''
+
+    # 將未檢測鳥類的大小資訊輸出到文件
+    output_file = file_name
+    with open(output_file, "w") as file:
+        for i in range(len(navigator.background_as_bird_size)):
+            bird_size = navigator.background_as_bird_size[i]
+            file.write(f"background as bird size: {bird_size}\n")
+
+def search_confidence(navigator=None):
+    '''
+        查詢不同置信度下
+        哪一種效果最好
+    '''
+    result = navigator.analyze_result()
+    for i in range(0, len(navigator.unmatched_bird_sizes)):
+        print(f"unwatch size: {navigator.unmatched_bird_sizes[i]}")
+
+    confidence_thr = [i for i in range(0, 100, 5)]
+    for i in range(0, len(confidence_thr)):
+        confidence_thr[i] = confidence_thr[i] / 100
+
+    for i in confidence_thr:
+        navigator = ImageNavigator(dataset, json_file, cfg, False, i, False, True)
+        result = navigator.analyze_result()
+        print(f"confidence thrshold: {i}...")
+        print(f"total_gt_birds: {result[0]}")
+        print(f"total_correct_predictions: {result[1]}")
+        print(f"total_bird_as_background: {result[2]}")
+        print(f"total_background_as_bird: {result[3]}")
+        print()
+
+
+
 default_config_path = 'work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/cascade_mask_rcnn_swin_finetune_rfla_4stage.py'
 default_json_file = 'work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/results_val.json'
-default_show_image = True
-default_confidence_threshold = 0.05
-default_process_info = True
-default_return_result = False
-default_get_unmatched = True
-default_get_watched = False
-
-# 用於解析布林值的函數
-def str2bool(value):
-    if value.lower() in ('true', '1', 't', 'y', 'yes'):
-        return True
-    elif value.lower() in ('false', '0', 'f', 'n', 'no'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
-# 設定命令列參數解析
-parser = argparse.ArgumentParser(description="Custom Image Navigator")
-parser.add_argument('--custom', action='store_true', help='Enable custom path selection')
-parser.add_argument('--show_image', type=str2bool, default=default_show_image, help='Whether to show image')
-parser.add_argument('--confidence_threshold', type=float, default=default_confidence_threshold, help='Confidence threshold')
-parser.add_argument('--process_info', type=str2bool, default=default_process_info, help='Whether to process info')
-parser.add_argument('--return_result', type=str2bool, default=default_return_result, help='Whether to return result')
-parser.add_argument('--get_unmatched', type=str2bool, default=default_get_unmatched, help='Whether to get unmatched info')
-parser.add_argument('--get_watched', type=str2bool, default=default_get_watched, help='Whether to get watched result')
-
-# 解析命令列參數
-args = parser.parse_args()
+args = setting_parser()
 
 # 根據 --custom 標誌決定是否手動選擇路徑
 if args.custom:
@@ -388,8 +482,6 @@ cfg = Config.fromfile(config_path)
 # 確保 dataset 被正確加載
 dataset = build_dataset(cfg.data.val)
 
-print(args.show_image)
-
 # 初始化圖像導航器
 navigator = ImageNavigator(
     dataset,
@@ -399,30 +491,15 @@ navigator = ImageNavigator(
     confidence_threshold=args.confidence_threshold,
     process_info=args.process_info,
     return_result=args.return_result,
-    get_watched=args.get_watched,
-    get_unwatched=args.get_unmatched
+    get_gt=args.get_gt,
+    get_unwatched=args.get_unmatched,
+    get_background_as_bird=args.get_background_as_bird
 )
 
-for i in range(0, len(navigator.watched_bird_sizes)):
-    print(f"unwatch size: {navigator.watched_bird_sizes[i]}")
+output_analyse_data_file(navigator.gt_bird_sizes, "gt_bbox_data.txt")
+# print_unwatched(navigator)
+# output_background_as_bird_to_file(navigator)
+# search_confidence(navigator)
 
 # 顯示圖形
 plt.show()
-
-# result = navigator.analyze_result()
-# for i in range(0, len(navigator.unmatched_bird_sizes)):
-#     print(f"unwatch size: {navigator.unmatched_bird_sizes[i]}")
-
-# confidence_thr = [i for i in range(0, 100, 5)]
-# for i in range(0, len(confidence_thr)):
-#     confidence_thr[i] = confidence_thr[i] / 100
-
-# for i in confidence_thr:
-#     navigator = ImageNavigator(dataset, json_file, cfg, False, i, False, True)
-#     result = navigator.analyze_result()
-#     print(f"confidence thrshold: {i}...")
-#     print(f"total_gt_birds: {result[0]}")
-#     print(f"total_correct_predictions: {result[1]}")
-#     print(f"total_bird_as_background: {result[2]}")
-#     print(f"total_background_as_bird: {result[3]}")
-#     print()

@@ -6,23 +6,41 @@ from PIL import Image
 import tkinter as tk
 from tkinter import filedialog, simpledialog
 import argparse
+from matplotlib.patches import Rectangle
+import numpy as np
 
+'''
 # 可以載入指定的圖片進行確認
+
+'''
+
 
 def load_coco_annotations(file_path):
     """載入 COCO 格式的 JSON 檔案"""
     with open(file_path, "r") as f:
         return json.load(f)
 
-def show_image_with_gt_and_predictions(image_dir, annotations, predictions, image_name):
+
+def compute_iou(box1, box2):
+    """計算兩個框的 IoU"""
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[0] + box1[2], box2[0] + box2[2])
+    y2 = min(box1[1] + box1[3], box2[1] + box2[3])
+    
+    inter_area = max(0, x2 - x1) * max(0, y2 - y1)
+    box1_area = box1[2] * box1[3]
+    box2_area = box2[2] * box2[3]
+    union_area = box1_area + box2_area - inter_area
+    return inter_area / union_area if union_area > 0 else 0
+
+def show_image_with_gt_and_predictions(image_dir, annotations, predictions, image_name, iou_threshold=0.5):
     """
     顯示指定圖片的 GT 和模型預測框，並顯示分數
     """
-    # 檢查圖片名稱並補全副檔名
     if not image_name.endswith(('.jpg', '.png', '.jpeg')):
         image_name += '.jpg'
 
-    # 找到對應的圖片資料
     image_data = next((img for img in annotations['images'] if img['file_name'] == image_name), None)
     if not image_data:
         print(f"Image '{image_name}' not found in annotations.")
@@ -33,31 +51,38 @@ def show_image_with_gt_and_predictions(image_dir, annotations, predictions, imag
         print(f"Image file '{image_path}' does not exist.")
         return
 
-    # 載入圖片
     img = Image.open(image_path)
     plt.figure(figsize=(12, 8))
     plt.imshow(img)
     ax = plt.gca()
 
-    # 繪製 GT 標註框
     image_id = image_data['id']
     gt_bboxes = [ann['bbox'] for ann in annotations['annotations'] if ann['image_id'] == image_id]
-    for bbox in gt_bboxes:
-        x, y, w, h = bbox
-        rect = Rectangle((x, y), w, h, linewidth=2, edgecolor='green', facecolor='none', label="GT")
+    pred_bboxes = [
+        pred['bbox'] + [pred['score']] for pred in predictions if pred['image_id'] == image_id
+    ]
+
+    matched_gt = set()
+    
+    # 檢查每個 GT 是否有匹配的預測框
+    for gt_idx, gt in enumerate(gt_bboxes):
+        matched = False
+        for pred in pred_bboxes:
+            iou = compute_iou(gt, pred[:4])
+            if iou >= iou_threshold:
+                matched = True
+                matched_gt.add(gt_idx)
+                break
+        color = 'green' if matched else 'red'  # 綠色代表匹配，紅色代表未匹配
+        x, y, w, h = gt
+        rect = Rectangle((x, y), w, h, linewidth=2, edgecolor=color, facecolor='none', label="Unmatched GT" if color == 'red' else "Matched GT")
         ax.add_patch(rect)
 
-    # 繪製模型預測框並顯示分數
-    if predictions:
-        pred_bboxes = [
-            pred['bbox'] + [pred['score']] for pred in predictions if pred['image_id'] == image_id
-        ]
-        for bbox in pred_bboxes:
-            x, y, w, h, score = bbox
-            rect = Rectangle((x, y), w, h, linewidth=2, edgecolor='blue', facecolor='none', linestyle='--', label="Prediction")
-            ax.add_patch(rect)
-            # 在框的左上角顯示分數
-            ax.text(x, y, f"{score:.2f}", color='blue', fontsize=10, weight='bold', ha='left', va='bottom', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+    for bbox in pred_bboxes:
+        x, y, w, h, score = bbox
+        rect = Rectangle((x, y), w, h, linewidth=2, edgecolor='blue', facecolor='none', linestyle='--', label="Prediction")
+        ax.add_patch(rect)
+        ax.text(x, y, f"{score:.2f}", color='blue', fontsize=10, weight='bold', ha='left', va='bottom', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
 
     # 顯示標籤
     handles, labels = ax.get_legend_handles_labels()
@@ -68,8 +93,6 @@ def show_image_with_gt_and_predictions(image_dir, annotations, predictions, imag
     plt.axis("off")
     plt.show()
 
-
-
 def browse_file(file_type):
     """彈出視窗選擇檔案"""
     root = tk.Tk()
@@ -79,7 +102,6 @@ def browse_file(file_type):
         filetypes=[("JSON Files", "*.json")] if file_type == "JSON 檔案" else [("Image Files", "*.jpg;*.png;*.jpeg")]
     )
     return file_path
-
 
 def select_image(annotations):
     """提供輸入視窗，讓使用者輸入圖片名稱"""

@@ -21,7 +21,7 @@ bash tools/dist_train.sh  configs/_MyPlan/Swin_Transformer/cascade_mask_rcnn_swi
 echo "###############################"
 echo "Step 2: fine-tuning on data/mva2023_sod4bird_train"
 echo "###############################"
-bash tools/dist_train.sh  configs/_MyPlan/Swin_rfla_4stage/cascade_rcnn_swin_finetune_rfla_3stage_pa.py $GPU_NUM
+bash tools/dist_train.sh  configs/_MyPlan/InternImage/cascade_internimage_s_fpn_100e_coco_nwd_finetune.py $GPU_NUM
 
 
 ###############################
@@ -150,7 +150,7 @@ python tools/test.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla/cascade_mask
 
 ### browse dataset
 python tools/misc/browse_dataset.py configs/_MyPlan/cascade_rcnn_finetune/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800.py [--show-interval ${SHOW_INTERVAL}]
-python tools/misc/browse_dataset.py configs/_MyPlan/Swin_rfla_4stage/cascade_rcnn_swin_finetune_rfla_3stage_pa.py --show 0
+python tools/misc/browse_dataset.py configs\_MyPlan\Swin_rfla_4stage\cascade_rcnn_swin_rfla_4stage_cp2.py --show 0
 
 ### fusion
 python tools/ensemble/ensemble.py data/mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json

@@ -1,5 +1,10 @@
 import matplotlib.pyplot as plt
 
+'''
+繪製不同置信度下的各種指標折線圖
+
+'''
+
 # Confidence thresholds and data
 confidence_thresholds = [
     0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 

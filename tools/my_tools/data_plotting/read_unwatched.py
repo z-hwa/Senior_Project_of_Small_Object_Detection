@@ -4,12 +4,22 @@ import re
 import argparse
 import os
 
-# run
-# python tools/my_tools/data_plotting/read_unwatched.py --data_file_2 tools/my_tools/swin_4stage/unwatched_swin_4stage
+'''
+讀取unwatched的檔案
+並繪製成散佈圖 以及 長條圖
+
+如果帶上第二個檔案名稱
+可以繪製比較
+
+ run
+ python tools/my_tools/data_plotting/read_unwatched.py
+'''
+
 
 # 設定預設檔案路徑
-default_data_file = "tools/my_tools/swin_4stage/watched_gt"  # 替換為你的檔案名稱
-default_data_file_2 = ""  # 第二個檔案路徑，預設為空
+default_data_file = "tools/my_tools/swin_4stage_data/gt_bbox.txt"  # 替換為你的檔案名稱
+default_data_file_2 = "tools/my_tools/swin_4stage_data/false_positive.txt"  # 替換為你的檔案名稱
+# default_data_file_2 = None#"tools/my_tools/swin_4stage_data/true_negative.txt"  # 第二個檔案路徑，預設為空
 
 # 設定命令列參數解析
 parser = argparse.ArgumentParser(description="Aspect Ratio Distribution")
@@ -65,10 +75,10 @@ if widths1.size > 0 and heights1.size > 0:
     plt.scatter(widths1, heights1, alpha=0.7, edgecolors='k', label=os.path.basename(data_file))  # 使用檔名作為圖例
 
 # 第二個檔案的散佈圖（如果有提供）
-if widths2.size > 0 and heights2.size > 0:
+if data_file_2 and widths2.size > 0 and heights2.size > 0:
     plt.scatter(widths2, heights2, alpha=0.7, edgecolors='r', label=os.path.basename(data_file_2))  # 使用檔名作為圖例
 
-plt.title("Width vs Height Distribution (Targets)", fontsize=14)
+plt.title("Width vs Height Distribution", fontsize=14)
 plt.xlabel("Width", fontsize=12)
 plt.ylabel("Height", fontsize=12)
 plt.grid(True, linestyle='--', alpha=0.6)
@@ -88,7 +98,7 @@ plt.figure(figsize=(12, 6))
 plt.subplot(1, 2, 1)
 if widths1.size > 0:
     plt.hist(widths1, bins=15, color='blue', alpha=0.7, edgecolor='k', label=os.path.basename(data_file))  # 使用檔名作為圖例
-if widths2.size > 0:
+if data_file_2 and widths2.size > 0:
     plt.hist(widths2, bins=15, color='red', alpha=0.7, edgecolor='k', label=os.path.basename(data_file_2))  # 使用檔名作為圖例
 plt.title("Width Distribution", fontsize=14)
 plt.xlabel("Width", fontsize=12)
@@ -103,7 +113,7 @@ plt.xticks(np.arange(int(min(widths1)), int(max(widths1)) + 1, step=10), fontsiz
 plt.subplot(1, 2, 2)
 if heights1.size > 0:
     plt.hist(heights1, bins=15, color='green', alpha=0.7, edgecolor='k', label=os.path.basename(data_file))  # 使用檔名作為圖例
-if heights2.size > 0:
+if data_file_2 and heights2.size > 0:
     plt.hist(heights2, bins=15, color='orange', alpha=0.7, edgecolor='k', label=os.path.basename(data_file_2))  # 使用檔名作為圖例
 plt.title("Height Distribution", fontsize=14)
 plt.xlabel("Height", fontsize=12)

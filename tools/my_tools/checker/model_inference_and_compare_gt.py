@@ -8,8 +8,10 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 from mmcv.parallel import DataContainer
 
+'''
 # CV DEMO用的
 # 載入模型 實時推理圖片 並顯示結果
+'''
 
 class ImageNavigator:
     def __init__(self, dataset, model, cfg):

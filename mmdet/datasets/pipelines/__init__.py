@@ -31,5 +31,5 @@ __all__ = [
     'InstaBoost', 'RandomCenterCropPad', 'AutoAugment', 'CutOut', 'Shear',
     'Rotate', 'ColorTransform', 'EqualizeTransform', 'BrightnessTransform',
     'ContrastTransform', 'Translate', 'RandomShift', 'Mosaic', 'MixUp',
-    'RandomAffine', 'YOLOXHSVRandomAug', 'CopyPaste', 'MVARandomCrop', 'MVAPasteBirds'
+    'RandomAffine', 'YOLOXHSVRandomAug', 'CopyPaste', 'MVARandomCrop', 'MVAPasteBirds', 'Sharpen'
 ]

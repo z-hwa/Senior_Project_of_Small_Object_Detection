@@ -3273,6 +3273,51 @@ class MVAPasteBirds:
         repr_str = self.__class__.__name__
         return repr_str
 
+@PIPELINES.register_module()
+class Sharpen:
+    def __init__(self, alpha=1.0, beta=0.0, kernel_size=3):
+        """
+        銳利化圖像的增強操作。
+        
+        Args:
+            alpha (float): 銳利化強度。值越大，圖像越銳利。
+            beta (float): 調整亮度的偏移量。默認為 0。
+            kernel_size (int): 銳利化核的大小。應為奇數，默認為 3。
+        """
+        self.alpha = alpha
+        self.beta = beta
+        self.kernel_size = kernel_size
+
+    def __call__(self, results):
+        """
+        對圖像進行銳利化處理。
+
+        Args:
+            results (dict): 包含圖像和標籤信息的字典。
+
+        Returns:
+            dict: 更新後的結果字典，包含銳利化的圖像。
+        """
+        img = results['img']
+        # 定義銳利化核
+        kernel = np.zeros((self.kernel_size, self.kernel_size), dtype=np.float32)
+        kernel[(self.kernel_size - 1) // 2, :] = -1
+        kernel[:, (self.kernel_size - 1) // 2] = -1
+        kernel[(self.kernel_size - 1) // 2, (self.kernel_size - 1) // 2] = 5
+
+        # 應用銳利化過濾器
+        sharpened_img = cv2.filter2D(img, -1, kernel)
+
+        # 調整對比度和亮度
+        img = cv2.addWeighted(sharpened_img, self.alpha, img, 1 - self.alpha, self.beta)
+
+        results['img'] = img
+        return results
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(alpha={self.alpha}, beta={self.beta}, kernel_size={self.kernel_size})"
+
+
 def file_filter(f):
     if f[-4:] in ['.png']:
         return True

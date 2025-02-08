@@ -2,8 +2,11 @@ from mmcv import Config
 from mmdet.datasets import build_dataset
 import matplotlib.pyplot as plt
 
+'''
 # 載入測試管道的圖片
 # 用以確認推理時的圖片長相
+
+'''
 
 # 加載配置文件
 cfg = Config.fromfile('configs/_MyPlan/Swin_rfla_4stage/cascade_rcnn_swin_finetune_rfla_3stage_pa.py')

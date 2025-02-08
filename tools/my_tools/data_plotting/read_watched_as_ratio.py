@@ -4,9 +4,17 @@ import re
 import argparse
 import os
 
+'''
+讀取unwatched檔案
+並繪製長寬比例長條圖
+
+一樣可以帶上第二個檔案做比較
+
+'''
+
 # 設定預設檔案路徑
-default_data_file = "tools/my_tools/swin_4stage/unwatched_swin_4stage"  # 替換為你的檔案名稱
-default_data_file_2 = ""  # 第二個檔案路徑，預設為空
+default_data_file = "tools/my_tools/swin_4stage_data/gt_bbox.txt"  # 替換為你的檔案名稱
+default_data_file_2 = "tools/my_tools/swin_4stage_data/true_negative.txt"  # 第二個檔案路徑，預設為空
 
 # 設定命令列參數解析
 parser = argparse.ArgumentParser(description="Aspect Ratio Distribution")
