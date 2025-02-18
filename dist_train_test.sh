@@ -21,7 +21,8 @@ bash tools/dist_train.sh  configs/_MyPlan/Swin_Transformer/cascade_mask_rcnn_swi
 echo "###############################"
 echo "Step 2: fine-tuning on data/mva2023_sod4bird_train"
 echo "###############################"
-bash tools/dist_train.sh  configs/_MyPlan/InternImage/cascade_internimage_s_fpn_100e_coco_nwd_finetune.py $GPU_NUM
+bash tools/dist_train.sh  configs/_MyPlan/smot4sb/cascade_rcnn_swin_rfla_4stage_mot.py $GPU_NUM
+bash tools/train.sh  configs/_MyPlan/smot4sb/cascade_rcnn_swin_rfla_4stage_mot.py $GPU_NUM
 
 
 ###############################
@@ -146,11 +147,11 @@ python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_
 
 ### 生成centernet的pkl
 python tools/test.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage_window2/cascade_mask_rcnn_swin_finetune_rfla_4stage_window2.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage_window2/epoch_30.pth --out result_val.pkl
-python tools/test.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla/cascade_mask_rcnn_swin_finetune_rfla.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla/epoch_46.pth --out result_val.pkl
+python tools/dist_test.py configs/_MyPlan/smot4sb/cascade_rcnn_swin_rfla_4stage_mot.py work_dirs/cascade_rcnn_swin_rfla_4stage_mot/epoch_10.pth $GPU_NUM --out result_val.pkl
 
 ### browse dataset
 python tools/misc/browse_dataset.py configs/_MyPlan/cascade_rcnn_finetune/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800.py [--show-interval ${SHOW_INTERVAL}]
-python tools/misc/browse_dataset.py configs\_MyPlan\Swin_rfla_4stage\cascade_rcnn_swin_rfla_4stage_cp2.py --show 0
+python tools/misc/browse_dataset.py configs/_MyPlan/smot4sb/cascade_rcnn_swin_rfla_4stage_mot.py --show 0
 
 ### fusion
 python tools/ensemble/ensemble.py data/mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json

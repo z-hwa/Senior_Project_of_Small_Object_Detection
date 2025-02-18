@@ -20,6 +20,14 @@ from .transformer import (DetrTransformerDecoder, DetrTransformerDecoderLayer,
                           DynamicConv, PatchEmbed, Transformer, nchw_to_nlc,
                           nlc_to_nchw, DinoTransformer, DinoTransformerDecoder)
 
+from .embed import (HybridEmbed, PatchEmbed_V2, PatchMerging, resize_pos_embed,
+                    resize_relative_position_bias_table)
+from .attention import (BEiTAttention, ChannelMultiheadAttention,
+                        CrossMultiheadAttention, LeAttention,
+                        MultiheadAttention, PromptMultiheadAttention,
+                        ShiftWindowMSA, WindowMSA, WindowMSAV2)
+from .helpers import is_tracing, to_2tuple, to_3tuple, to_4tuple, to_ntuple
+
 from .query_denoising import build_dn_generator
 
 __all__ = [
@@ -33,5 +41,7 @@ __all__ = [
     'nlc_to_nchw', 'pvt_convert', 'sigmoid_geometric_mean',
     'preprocess_panoptic_gt', 'DyReLU',
     'get_uncertain_point_coords_with_randomness', 'get_uncertainty',
-    'build_dn_generator', 'DinoTransformer', 'DinoTransformerDecoder'
+    'build_dn_generator', 'DinoTransformer', 'DinoTransformerDecoder',
+
+    'PatchMerging', 'ShiftWindowMSA', 'WindowMSAV2', 'resize_pos_embed', 'to_2tuple'
 ]
