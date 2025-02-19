@@ -345,7 +345,7 @@ class SwinTransformerV2(BaseBackbone):
                  window_size=8,
                  drop_rate=0.,
                  drop_path_rate=0.1,
-                 out_indices=(3, ),
+                 out_indices=(0, 1, 2, 3, ),
                  use_abs_pos_embed=False,
                  interpolate_mode='bicubic',
                  with_cp=False,

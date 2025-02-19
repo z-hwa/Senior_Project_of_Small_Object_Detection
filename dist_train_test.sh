@@ -22,7 +22,7 @@ echo "###############################"
 echo "Step 2: fine-tuning on data/mva2023_sod4bird_train"
 echo "###############################"
 bash tools/dist_train.sh  configs/_MyPlan/smot4sb/cascade_rcnn_swin_rfla_4stage_mot.py $GPU_NUM
-bash tools/train.sh  configs/_MyPlan/smot4sb/cascade_rcnn_swin_rfla_4stage_mot.py $GPU_NUM
+bash tools/train.sh  configs/_MyPlan/Swin_v2/cascade_rcnn_swin_v2_rfla_4stage.py $GPU_NUM
 
 
 ###############################
