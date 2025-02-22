@@ -1,6 +1,6 @@
 import os
 dataset_type = 'DroneDataset'  
-data_root = "/root/Document/MVA2023SmallObjectDetection4SpottingBirds" + '/data/'
+data_root = "/root/Document/mva2023" + '/data/'
 
 # 修改增加多尺度輸入 2024.10.2
 # 復原2024.10.3
@@ -64,16 +64,16 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=1,
-    workers_per_gpu=2,
+    workers_per_gpu=1,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'SOD4SB_train_sharpen/annotations/split_train_coco.json',
-        img_prefix=data_root + 'SOD4SB_train_sharpen/images/',
+        ann_file=data_root + 'train/annotations/split_train_coco.json',
+        img_prefix=data_root + 'train/images/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'SOD4SB_train_sharpen/annotations/split_val_coco.json',
-        img_prefix=data_root + 'SOD4SB_train_sharpen/images/',
+        ann_file=data_root + 'train/annotations/split_val_coco.json',
+        img_prefix=data_root + 'train/images/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
