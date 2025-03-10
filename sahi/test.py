@@ -12,8 +12,8 @@ from sahi.predict import get_prediction, get_sliced_prediction, predict
 from IPython.display import Image
 
 # download cascade mask rcnn model&config
-model_path = "work_dirs/cascade_mask_rcnn_swin_finetune_rfla/epoch_95.pth"
-config_path = "work_dirs/cascade_mask_rcnn_swin_finetune_rfla/cascade_mask_rcnn_swin_finetune_rfla.py"
+model_path = "work_dirs/yolox_s_8x8_300e_coco/epoch_10.pth"
+config_path = "work_dirs/yolox_s_8x8_300e_coco/yolox_s_8x8_300e_coco.py"
 
 # download test images into demo_data folder
 # download_from_url('https://raw.githubusercontent.com/obss/sahi/main/demo/demo_data/small-vehicles1.jpeg', 'demo_data/small-vehicles1.jpeg')
@@ -28,15 +28,15 @@ detection_model = AutoDetectionModel.from_pretrained(
     device="cuda:0", # or 'cuda:0'
 )
 
-result = get_prediction("sahi/demo_data/00012.jpg", detection_model)
-# result = get_sliced_prediction(
-#     "sahi/demo_data/00012.jpg",
-#     detection_model,
-#     slice_height = 800,
-#     slice_width = 800,
-#     overlap_height_ratio = 0.2,
-#     overlap_width_ratio = 0.2
-# )
+# result = get_prediction("sahi/demo_data/00012.jpg", detection_model)
+result = get_sliced_prediction(
+    "sahi/demo_data/00012.jpg",
+    detection_model,
+    slice_height = 640,
+    slice_width = 640,
+    overlap_height_ratio = 0.2,
+    overlap_width_ratio = 0.2
+)
 
 output = result.to_coco_predictions(image_id=1)
 print(output)

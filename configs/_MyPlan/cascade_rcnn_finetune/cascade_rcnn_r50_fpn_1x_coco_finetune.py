@@ -1,5 +1,5 @@
 _base_ = [
-    './mva4sb_test.py', # change
+    './mva4sb.py', # change
     '../../_base_/schedules/schedule_1x.py', '../../_base_/default_runtime.py'
 ]
 # model settings

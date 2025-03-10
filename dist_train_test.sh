@@ -140,7 +140,7 @@ python tools/test.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage_windo
 ### 儲存為檔案 
 python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/20240629_131115.log.json --out vis_log --keys loss
 ### 直接展示
-python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_rcnn_swin_finetune/20241002_132555.log.json --keys loss
+python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_swin_rfla_4stage_kl/20250305_175136.log.json --keys loss
 
 # 所有定位相關的loss
 python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_rcnn_swin_finetune_rfla_pretrained_swinRepo/20241217_193238.log.json --keys loss loss_rpn_bbox s0.loss_bbox s1.loss_bbox s2.loss_bbox
@@ -151,7 +151,7 @@ python tools/dist_test.py configs/_MyPlan/smot4sb/cascade_rcnn_swin_rfla_4stage_
 
 ### browse dataset
 python tools/misc/browse_dataset.py configs/_MyPlan/cascade_rcnn_finetune/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800.py [--show-interval ${SHOW_INTERVAL}]
-python tools/misc/browse_dataset.py configs/_MyPlan/smot4sb/cascade_rcnn_swin_rfla_4stage_mot.py --show 0
+python tools/misc/browse_dataset.py configs/yolox/yolox_s_8x8_300e_coco.py --show 0
 
 ### fusion
 python tools/ensemble/ensemble.py data/mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json

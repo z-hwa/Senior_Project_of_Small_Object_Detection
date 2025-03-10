@@ -107,6 +107,7 @@ parser.add_argument("annotation_file", help="The path to annotation file")
 args = parser.parse_args()
 
 
-ensemble('tools/ensemble/config.txt', 'results.json', args.annotation_file, weights=[2, 3, 4, 5, 6, 7, 8, 11])
+ensemble('tools/ensemble/config.txt', 'results_smot4sb.json', args.annotation_file, weights=[2, 7, 8, 9])
 
 # python tools/ensemble/ensemble.py data/mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json
+# python tools/ensemble/ensemble.py /root/Document/MVA2025-SMOT4SB/datasets/SMOT4SB/annotations/test_coco.json

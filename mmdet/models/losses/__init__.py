@@ -19,8 +19,8 @@ from .smooth_l1_loss import L1Loss, SmoothL1Loss, l1_loss, smooth_l1_loss
 from .utils import reduce_loss, weight_reduce_loss, weighted_loss
 from .varifocal_loss import VarifocalLoss
 
-from kld_loss import KLDLoss
-from adaptive_loss import Adaptive_KLD_Smooth_Loss
+from .kld_loss import KLDLoss
+from .adaptive_loss import Adaptive_KLD_Smooth_Loss
 
 __all__ = [
     'accuracy', 'Accuracy', 'cross_entropy', 'binary_cross_entropy',

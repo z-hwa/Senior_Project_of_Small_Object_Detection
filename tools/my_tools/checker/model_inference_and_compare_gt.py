@@ -109,13 +109,13 @@ class ImageNavigator:
         self.update_image()
 
 # 載入配置檔案
-cfg = Config.fromfile('work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/cascade_mask_rcnn_swin_finetune_rfla_4stage.py')
+cfg = Config.fromfile('configs/_MyPlan/yolo/yolox_s_8x8_300e_coco.py')
 
 # 確保 dataset 被正確加載
 dataset = build_dataset(cfg.data.val)
 
 # 載入模型
-model = init_detector(cfg, 'work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/epoch_104.pth', device='cuda:0')
+model = init_detector(cfg, 'work_dirs/yolox_s_8x8_300e_coco/epoch_55.pth', device='cuda:0')
 
 # 初始化圖像導航器
 navigator = ImageNavigator(dataset, model, cfg)

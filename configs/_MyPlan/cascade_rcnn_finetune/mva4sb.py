@@ -12,8 +12,12 @@ train_pipeline = [
         type='MVARandomCrop',
         crop_size=(800,800),
         must_include_bbox_ratio=0.),
-    dict(type='MVAPasteBirds',
-         bbox_path = "data/birds/"),
+    dict(
+        type='MVAPasteBirds',
+        minW=5,
+        maxW=80,
+        num_range_per_image=[0, 5],
+        bbox_path="data/birds/"),
     dict(
         type='PhotoMetricDistortion',
         brightness_delta=32,
@@ -62,6 +66,10 @@ data = dict(
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json',
-        img_prefix=data_root + 'mva2023_sod4bird_pub_test/images/',
+        # ann_file=data_root + 'mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json',
+        # img_prefix=data_root + 'mva2023_sod4bird_pub_test/images/',
+        ann_file=
+        '/root/Document/MVA2025-SMOT4SB/datasets/SMOT4SB/annotations/test_coco.json',
+        img_prefix=
+        '/root/Document/MVA2025-SMOT4SB/datasets/SMOT4SB/pub_test/',
         pipeline=test_pipeline))
