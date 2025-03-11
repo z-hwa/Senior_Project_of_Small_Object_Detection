@@ -9,7 +9,6 @@ __pycache__/
 *$.py.class
 browse_dataset/
 build/
-demo/
 dist/
 prepare_voc.py
 runs/
