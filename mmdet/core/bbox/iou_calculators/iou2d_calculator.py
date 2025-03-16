@@ -194,6 +194,19 @@ def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
     assert (bboxes1.size(-1) == 4 or bboxes1.size(0) == 0)
     assert (bboxes2.size(-1) == 4 or bboxes2.size(0) == 0)
 
+    # 修正 bboxes1
+    bboxes1[:, [0, 2]] = torch.sort(bboxes1[:, [0, 2]], dim=1)[0]  # 確保 x_min ≤ x_max
+    bboxes1[:, [1, 3]] = torch.sort(bboxes1[:, [1, 3]], dim=1)[0]  # 確保 y_min ≤ y_max
+
+    # 修正 bboxes2
+    bboxes2[:, [0, 2]] = torch.sort(bboxes2[:, [0, 2]], dim=1)[0]
+    bboxes2[:, [1, 3]] = torch.sort(bboxes2[:, [1, 3]], dim=1)[0]
+
+    assert (bboxes1[..., 2] >= bboxes1[..., 0]).all()
+    assert (bboxes1[..., 3] >= bboxes1[..., 1]).all()
+    assert (bboxes2[..., 2] >= bboxes2[..., 0]).all()
+    assert (bboxes2[..., 3] >= bboxes2[..., 1]).all()
+
     # Batch dim must be the same
     # Batch dim: (B1, B2, ... Bn)
     assert bboxes1.shape[:-2] == bboxes2.shape[:-2]
@@ -258,4 +271,7 @@ def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
     enclose_area = enclose_wh[..., 0] * enclose_wh[..., 1]
     enclose_area = torch.max(enclose_area, eps)
     gious = ious - (enclose_area - union) / enclose_area
+
+    # print(f"enclose area {enclose_area}")
+
     return gious

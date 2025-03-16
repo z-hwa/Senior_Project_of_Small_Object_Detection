@@ -16,6 +16,7 @@ model = dict(
         drop_path_rate=0.2,
         patch_norm=True,
         with_cp=False,
+        # with_cp=True,
         convert_weights=True,
         init_cfg=dict(type='Pretrained', checkpoint=pretrained),
     ),
@@ -33,7 +34,7 @@ model = dict(
             target_means=[.0, .0, .0, .0],
             target_stds=[1.0, 1.0, 1.0, 1.0]),
         loss_cls=dict(
-            type='FocalLoss', use_sigmoid=True, loss_weight=1.0),
+            type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
     roi_head=dict(
         type='CascadeRoIHead',
@@ -143,26 +144,11 @@ model = dict(
             dict(
                 assigner=dict(
                     type='MaxIoUAssigner',
-                    pos_iou_thr=0.4,
-                    neg_iou_thr=0.4,
-                    min_pos_iou=0.4,
-                    match_low_quality=False,
-                    ignore_iof_thr=-1),
-                sampler=dict(
-                    type='RandomSampler',
-                    num=512,
-                    pos_fraction=0.25,
-                    neg_pos_ub=-1,
-                    add_gt_as_proposals=True),
-                # mask_size=28,
-                pos_weight=-1,
-                debug=False),
-            dict(
-                assigner=dict(
-                    type='MaxIoUAssigner',
                     pos_iou_thr=0.5,
                     neg_iou_thr=0.5,
                     min_pos_iou=0.5,
+                    iou_calculator=dict(type='BboxDistanceMetric'),
+                    assign_metric='kl', # KLD as RFD for label assignment
                     match_low_quality=False,
                     ignore_iof_thr=-1),
                 sampler=dict(
@@ -180,6 +166,8 @@ model = dict(
                     pos_iou_thr=0.6,
                     neg_iou_thr=0.6,
                     min_pos_iou=0.6,
+                    iou_calculator=dict(type='BboxDistanceMetric'),
+                    assign_metric='kl', # KLD as RFD for label assignment
                     match_low_quality=False,
                     ignore_iof_thr=-1),
                 sampler=dict(
@@ -197,6 +185,27 @@ model = dict(
                     pos_iou_thr=0.7,
                     neg_iou_thr=0.7,
                     min_pos_iou=0.7,
+                    iou_calculator=dict(type='BboxDistanceMetric'),
+                    assign_metric='kl', # KLD as RFD for label assignment
+                    match_low_quality=False,
+                    ignore_iof_thr=-1),
+                sampler=dict(
+                    type='RandomSampler',
+                    num=512,
+                    pos_fraction=0.25,
+                    neg_pos_ub=-1,
+                    add_gt_as_proposals=True),
+                # mask_size=28,
+                pos_weight=-1,
+                debug=False),
+            dict(
+                assigner=dict(
+                    type='MaxIoUAssigner',
+                    pos_iou_thr=0.8,
+                    neg_iou_thr=0.8,
+                    min_pos_iou=0.8,
+                    iou_calculator=dict(type='BboxDistanceMetric'),
+                    assign_metric='kl', # KLD as RFD for label assignment
                     match_low_quality=False,
                     ignore_iof_thr=-1),
                 sampler=dict(
@@ -226,13 +235,13 @@ runner = dict(max_epochs=120)
 
 # 學習率調整策略
 # optimizer
-optimizer = dict(type='SGD', lr=0.0005, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='SGD', lr=0.005, momentum=0.9, weight_decay=0.0001)
 # optimizer = dict(type='SGD', lr=0.0005, momentum=0.9, weight_decay=0.0001)
 
 # Avoid evaluation and saving weights too frequently
-evaluation = dict(interval=5, metric='bbox')
+evaluation = dict(interval=10, metric='bbox')
 checkpoint_config = dict(interval=2)
 
 # load_from = "work_dirs/cascade_mask_rcnn_swin_small_patch4_window7_mstrain_480-800_giou_4conv1f_adamw_3x_coco/epoch_40.pth"
-# load_from = "work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/epoch_104.pth"
-resume_from = "work_dirs/cascade_rcnn_swin_rfla_4stage_focalLoss/epoch_10.pth"
+# load_from = "work_dirs/cascade_rcnn_swin_rfla_4stage_kl/epoch_120.pth"
+resume_from = "work_dirs/cascade_rcnn_swin_rfla_4stage_kl_5678/epoch_56.pth"

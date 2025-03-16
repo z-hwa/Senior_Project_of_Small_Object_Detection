@@ -21,6 +21,12 @@ train_pipeline = [
         maxW=80,
         num_range_per_image=[0, 5],
         bbox_path="data/birds/"),
+    # dict(
+    #     type='MVAPasteBirds',
+    #     minW=5,
+    #     maxW=80,
+    #     num_range_per_image=[0, 5],
+    #     bbox_path="data/birds_test_rmg/"),
     dict(
         type='PhotoMetricDistortion',
         brightness_delta=32,

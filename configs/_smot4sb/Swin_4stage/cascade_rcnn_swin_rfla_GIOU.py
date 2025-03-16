@@ -33,7 +33,7 @@ model = dict(
             target_means=[.0, .0, .0, .0],
             target_stds=[1.0, 1.0, 1.0, 1.0]),
         loss_cls=dict(
-            type='FocalLoss', use_sigmoid=True, loss_weight=1.0),
+            type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
     roi_head=dict(
         type='CascadeRoIHead',
@@ -60,7 +60,7 @@ model = dict(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=1.0),
-                loss_bbox=dict(type='SmoothL1Loss', beta=1.0,
+                loss_bbox=dict(type='GIoULoss', 
                                loss_weight=1.0)),
             dict(
                 type='Shared2FCBBoxHead',
@@ -77,7 +77,7 @@ model = dict(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=1.0),
-                loss_bbox=dict(type='SmoothL1Loss', beta=1.0,
+                loss_bbox=dict(type='GIoULoss', 
                                loss_weight=1.0)),
             dict(
                 type='Shared2FCBBoxHead',
@@ -94,7 +94,7 @@ model = dict(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=1.0),
-                loss_bbox=dict(type='SmoothL1Loss', beta=1.0,
+                loss_bbox=dict(type='GIoULoss',
                                loss_weight=1.0)),
             dict(
                 type='Shared2FCBBoxHead',
@@ -111,7 +111,7 @@ model = dict(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=1.0),
-                loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0))
+                loss_bbox=dict(type='GIoULoss', loss_weight=1.0))
         ]),
     neck=dict(in_channels=[96, 192, 384, 768]),
     train_cfg = dict(
@@ -222,17 +222,17 @@ lr_config = dict(
     warmup_ratio=1.0 / 1000,
     step=[16, 19])
 
-runner = dict(max_epochs=120)
+runner = dict(max_epochs=140)
 
 # 學習率調整策略
 # optimizer
-optimizer = dict(type='SGD', lr=0.0005, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='SGD', lr=0.005, momentum=0.9, weight_decay=0.0001)
 # optimizer = dict(type='SGD', lr=0.0005, momentum=0.9, weight_decay=0.0001)
 
 # Avoid evaluation and saving weights too frequently
 evaluation = dict(interval=5, metric='bbox')
-checkpoint_config = dict(interval=2)
+checkpoint_config = dict(interval=1)
 
 # load_from = "work_dirs/cascade_mask_rcnn_swin_small_patch4_window7_mstrain_480-800_giou_4conv1f_adamw_3x_coco/epoch_40.pth"
-# load_from = "work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/epoch_104.pth"
-resume_from = "work_dirs/cascade_rcnn_swin_rfla_4stage_focalLoss/epoch_10.pth"
+# load_from = "work_dirs/cascade_mask_rcnn_swin_finetune/first_ver/epoch_20.pth"
+# resume_from = "work_dirs/cascade_mask_rcnn_swin_finetune_rfla/epoch_46.pth"

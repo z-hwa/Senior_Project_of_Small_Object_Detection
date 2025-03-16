@@ -163,6 +163,7 @@ def giou_loss(pred, target, eps=1e-7):
         Tensor: Loss tensor.
     """
     gious = bbox_overlaps(pred, target, mode='giou', is_aligned=True, eps=eps)
+    # print(f"Giou loss {gious}")
     loss = 1 - gious
     return loss
 

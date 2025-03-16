@@ -140,7 +140,7 @@ python tools/test.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage_windo
 ### 儲存為檔案 
 python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/20240629_131115.log.json --out vis_log --keys loss
 ### 直接展示
-python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_swin_rfla_4stage_kl/20250305_175136.log.json --keys loss
+python ./tools/analysis_tools/analyze_logs.py work_dirs/cascade_rcnn_swin_rfla_4stage_focalLoss/20250312_222425.log --keys loss loss_rpn_cls loss_rpn_bbox
 
 # 所有定位相關的loss
 python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_rcnn_swin_finetune_rfla_pretrained_swinRepo/20241217_193238.log.json --keys loss loss_rpn_bbox s0.loss_bbox s1.loss_bbox s2.loss_bbox
