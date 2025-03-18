@@ -10,30 +10,26 @@ img_norm_cfg = dict(
 
 train_pipeline = [
     dict(type='LoadImageFromFile', to_float32=True, color_type='color'), 
-    dict(type='LoadPreviousFrameFromFile', to_float32=True, color_type='color'), 
-    dict(type='LoadOpticalFlowFromFile'),
     dict(type='LoadAnnotations', with_bbox=True), 
     dict( 
         type='MVARandomCrop',
         crop_size=(800,800),
         must_include_bbox_ratio=0.6),
     dict(
-        type='PhotoMetricDistortion_for_2image',
+        type='PhotoMetricDistortion',
         brightness_delta=32,
         contrast_range=(0.5, 1.5),
         saturation_range=(0.5, 1.5),
         hue_delta=18),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Resize', img_scale=(800,800), keep_ratio=True, override=True),
-    dict(type='Normalize_for_2img', **img_norm_cfg),
+    dict(type='Normalize', **img_norm_cfg), # 這東西好像沒效果...
     dict(type='DefaultFormatBundle'),
     dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
 ]
 
 test_pipeline = [
-    dict(type='LoadImageFromFile', to_float32=True, color_type='color'), 
-    dict(type='LoadPreviousFrameFromFile', to_float32=True, color_type='color'), 
-    dict(type='LoadOpticalFlowFromFile'),
+    dict(type='LoadImageFromFile', to_float32=True),
     dict(
         type='MultiScaleFlipAug',
         scale_factor=1.0,
@@ -41,7 +37,8 @@ test_pipeline = [
         transforms=[
             dict(type='Resize', keep_ratio=True),
             dict(type='RandomFlip'),
-            dict(type='Normalize_for_2img', **img_norm_cfg),
+            dict(type='Normalize', **img_norm_cfg),
+            dict(type='Pad', size_divisor=32),
             dict(type='DefaultFormatBundle'),
             dict(
                 type='Collect',
@@ -53,20 +50,22 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=1,
+    samples_per_gpu=2,
+    workers_per_gpu=2,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'fake_output_directory/val/val.json',
         img_prefix=data_root + 'fake_output_directory/val/copy_paste_images',
+        # ann_file=data_root + 'MVA2023/train/annotations/split_val_coco.json',
+        # img_prefix=data_root + 'MVA2023/train/images/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'fake_output_directory/val/val.json',
-        img_prefix=data_root + 'fake_output_directory/val/copy_paste_images',
+        ann_file=data_root + 'MVA2023/train/annotations/split_val_coco.json',
+        img_prefix=data_root + 'MVA2023/train/images/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'fake_output_directory/val/val.json',
-        img_prefix=data_root + 'fake_output_directory/val/copy_paste_images',
+        ann_file=data_root + 'MVA2023/train/annotations/split_val_coco.json',
+        img_prefix=data_root + 'MVA2023/train/images/',
         pipeline=test_pipeline))

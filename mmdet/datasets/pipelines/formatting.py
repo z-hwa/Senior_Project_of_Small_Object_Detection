@@ -214,6 +214,7 @@ class DefaultFormatBundle:
                 default bundle.
         """
 
+
         if 'img' in results:
             img = results['img']
             if self.img_to_float is True and img.dtype == np.uint8:

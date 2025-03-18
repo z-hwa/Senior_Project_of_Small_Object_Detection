@@ -8,13 +8,15 @@ from .formatting import (Collect, DefaultFormatBundle, ImageToTensor,
 from .instaboost import InstaBoost
 from .loading import (LoadAnnotations, LoadImageFromFile, LoadImageFromWebcam,
                       LoadMultiChannelImageFromFiles, LoadPanopticAnnotations,
-                      LoadProposals)
+                      LoadProposals, LoadPreviousFrameFromFile, LoadOpticalFlowFromFile)
 from .test_time_aug import MultiScaleFlipAug
 from .transforms import (Albu, CopyPaste, CutOut, Expand, MinIoURandomCrop,
                          MixUp, Mosaic, Normalize, Pad, PhotoMetricDistortion,
                          RandomAffine, RandomCenterCropPad, RandomCrop,
                          RandomFlip, RandomShift, Resize, SegRescale,
-                         YOLOXHSVRandomAug, MVARandomCrop, MVAPasteBirds)
+                         YOLOXHSVRandomAug, MVARandomCrop, MVAPasteBirds,
+                         PhotoMetricDistortion_for_2image,
+                         Normalize_for_2img)
 
 # ------------------
 from .loading import LoadHardNegatives
@@ -31,5 +33,7 @@ __all__ = [
     'InstaBoost', 'RandomCenterCropPad', 'AutoAugment', 'CutOut', 'Shear',
     'Rotate', 'ColorTransform', 'EqualizeTransform', 'BrightnessTransform',
     'ContrastTransform', 'Translate', 'RandomShift', 'Mosaic', 'MixUp',
-    'RandomAffine', 'YOLOXHSVRandomAug', 'CopyPaste', 'MVARandomCrop', 'MVAPasteBirds', 'Sharpen'
+    'RandomAffine', 'YOLOXHSVRandomAug', 'CopyPaste', 'MVARandomCrop', 'MVAPasteBirds', 'Sharpen', 'LoadPreviousFrameFromFile',
+    'LoadOpticalFlowFromFile',
+    'PhotoMetricDistortion_for_2image','Normalize_for_2img'
 ]

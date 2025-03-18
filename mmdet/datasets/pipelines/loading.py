@@ -13,6 +13,176 @@ try:
 except ImportError:
     rgb2id = None
 
+import os.path as osp
+import io
+
+@PIPELINES.register_module()
+class LoadOpticalFlowFromFile:
+    """Load optical flow from file.
+
+    Required keys are "img_info" (a dict that must contain the key "filename").
+    Adds the optical flow (ndarray) to the "optical_flow" key.
+
+    Args:
+        file_dir (str): Directory containing the original images.
+        file_prefix (str): Prefix of the original image filenames.
+        flow_dir (str): Directory containing the optical flow files.
+        flow_prefix (str): Prefix of the optical flow filenames.
+        file_client_args (dict): Arguments to instantiate a FileClient.
+            See :class:`mmcv.fileio.FileClient` for details.
+            Defaults to ``dict(backend='disk')``.
+    """
+
+    def __init__(self,
+                 file_dir="copy_paste_images",
+                 file_prefix="copy_paste_",
+                 flow_dir="optical_flow",
+                 flow_prefix="flow_",
+                 file_client_args=dict(backend='disk')):
+        self.file_dir = file_dir
+        self.file_prefix = file_prefix
+        self.flow_dir = flow_dir
+        self.flow_prefix = flow_prefix
+        self.file_client_args = file_client_args.copy()
+        self.file_client = None
+    
+    def visualize_optical_flow(self, flow):
+        import cv2
+
+        """可視化光流場"""
+        h, w = flow.shape[:2]
+        hsv = np.zeros((h, w, 3), np.uint8)
+        hsv[..., 1] = 255
+
+        mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+        hsv[..., 0] = ang * 180 / np.pi / 2
+        hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+        bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+        cv2.imshow('Optical Flow', bgr)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    def __call__(self, results):
+        """Call functions to load optical flow from file.
+
+        Args:
+            results (dict): Result dict from :obj:`mmdet.CustomDataset`.
+
+        Returns:
+            dict: The dict contains the optical flow (ndarray).
+        """
+
+        if self.file_client is None:
+            self.file_client = mmcv.FileClient(**self.file_client_args)
+
+        if results['img_prefix'] is not None:
+            filename = osp.join(results['img_prefix'], results['img_info']['filename'])
+        else:
+            filename = results['img_info']['filename']
+
+        # Construct the optical flow filename
+        flow_filename = filename.replace(self.file_dir, self.flow_dir).replace(self.file_prefix, self.flow_prefix).replace(".jpg", ".npy")
+
+        flow_bytes = self.file_client.get(flow_filename)
+        flow = np.load(io.BytesIO(flow_bytes))
+
+        results['img'] = np.concatenate((results['img'], flow), axis=2)
+
+        return results
+
+    def __repr__(self):
+        repr_str = (f'{self.__class__.__name__}('
+                    f"file_dir='{self.file_dir}', "
+                    f"file_prefix='{self.file_prefix}', "
+                    f"flow_dir='{self.flow_dir}', "
+                    f"flow_prefix='{self.flow_prefix}', "
+                    f'file_client_args={self.file_client_args})')
+        return repr_str
+
+@PIPELINES.register_module()
+class LoadPreviousFrameFromFile:
+    """Load previous frame image from file and stack it with the original image.
+
+    Required keys are "img" and "img_info" (a dict that must contain the
+    key "filename"). The "img" key should already contain the loaded original
+    image (ndarray). Adds the previous frame image to the "img" key.
+
+    Args:
+        to_float32 (bool): Whether to convert the loaded image to a float32
+            numpy array. If set to False, the loaded image is an uint8 array.
+            Defaults to False.
+        color_type (str): The flag argument for :func:`mmcv.imfrombytes`.
+            Defaults to 'color'.
+        file_client_args (dict): Arguments to instantiate a FileClient.
+            See :class:`mmcv.fileio.FileClient` for details.
+            Defaults to ``dict(backend='disk')``.
+    """
+
+    def __init__(self,
+                 to_float32=False,
+                 color_type='color',
+                 channel_order='bgr',
+                 file_client_args=dict(backend='disk'),
+                 file_dir="copy_paste_images",
+                 file_prefix="copy_paste_",
+                 last_frame_dir="prev_frames",
+                 last_frame_prefix="prev_"):
+        self.to_float32 = to_float32
+        self.color_type = color_type
+        self.channel_order = channel_order
+        self.file_client_args = file_client_args.copy()
+        self.file_client = None
+
+        # 來源路徑
+        self.file_dir = file_dir
+        self.file_prefix = file_prefix
+        self.last_frame_dir = last_frame_dir
+        self.last_frame_prefix = last_frame_prefix
+
+    def __call__(self, results):
+        """Call functions to load previous frame image and stack it with the original image.
+
+        Args:
+            results (dict): Result dict from :obj:`mmdet.CustomDataset`.
+
+        Returns:
+            dict: The dict contains the original image stacked with the previous frame image.
+        """
+
+        if self.file_client is None:
+            self.file_client = mmcv.FileClient(**self.file_client_args)
+
+        if results['img_prefix'] is not None:
+            filename = osp.join(results['img_prefix'],
+                                results['img_info']['filename'])
+        else:
+            filename = results['img_info']['filename']
+
+        # Construct the previous frame filename
+        prev_filename = filename.replace(self.file_dir, self.last_frame_dir).replace(self.file_prefix, self.last_frame_prefix)
+
+        img_bytes = self.file_client.get(prev_filename)
+        prev_img = mmcv.imfrombytes(
+            img_bytes, flag=self.color_type, channel_order=self.channel_order)
+        if self.to_float32:
+            prev_img = prev_img.astype(np.float32)
+
+        # Stack the previous frame image with the original image
+        results['img'] = np.concatenate((results['img'], prev_img), axis=2)
+    
+        # # Add breakpoint here
+        # breakpoint()
+
+        return results
+
+    def __repr__(self):
+        repr_str = (f'{self.__class__.__name__}('
+                    f'to_float32={self.to_float32}, '
+                    f"color_type='{self.color_type}', "
+                    f"channel_order='{self.channel_order}', "
+                    f'file_client_args={self.file_client_args})')
+        return repr_str
 
 @PIPELINES.register_module()
 class LoadImageFromFile:

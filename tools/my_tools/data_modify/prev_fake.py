@@ -52,6 +52,23 @@ def random_copy_paste_bird(image, bird_image, min_size=5, max_size=80):
     h, w, _ = image.shape
     bird_h, bird_w, _ = bird_image.shape
 
+    # 找出圖片較短的一邊
+    short_side = min(w, h)
+
+    # 隨機生成貼上的短邊大小
+    paste_short = random.randint(min_size, min(max_size, short_side))
+
+    # 隨機生成長寬比倍數
+    aspect_ratio_factor = random.uniform(1, 9.0)  # 假設合理的長寬比倍數在 0.5 到 2.0 之間
+
+    # 根據短邊和倍數計算長邊大小
+    if w <= h:
+        paste_w = paste_short
+        paste_h = int(paste_short * aspect_ratio_factor)
+    else:
+        paste_h = paste_short
+        paste_w = int(paste_short * aspect_ratio_factor)
+
     # 隨機生成貼上的大小
     paste_w = random.randint(min_size, min(max_size, bird_w))
     paste_h = random.randint(min_size, min(max_size, bird_h))
@@ -75,6 +92,7 @@ def random_copy_paste_bird(image, bird_image, min_size=5, max_size=80):
         'bbox': [x, y, paste_w, paste_h],
         'category_id': 0,  # 假設鳥類的 category_id 為 1
         'iscrowd': 0,
+        'area': paste_w * paste_h  # 計算邊界框的面積
         # 其他必要的標註欄位
     }
     return image, new_annotation, x, y, paste_w, paste_h
@@ -100,11 +118,12 @@ def visualize_optical_flow(flow):
     return bgr
 
 # 範例程式碼
-coco_json_path = '/home/zhwa/Document/data/MVA2023/train/annotations/split_train_coco.json'
 image_dir = '/home/zhwa/Document/data/MVA2023/train/images'
 bird_image_dir = '/home/zhwa/Document/data/MVA2023/birds'
-output_dir = '/home/zhwa/Document/data/fake_output_directory/train'
-new_coco_json_path = os.path.join(output_dir, 'new_coco_dataset.json') #新的json檔案路徑
+
+coco_json_path = '/home/zhwa/Document/data/MVA2023/train/annotations/split_val_coco.json'
+output_dir = '/home/zhwa/Document/data/fake_output_directory/val'
+new_coco_json_path = os.path.join(output_dir, 'val.json') #新的json檔案路徑
 
 os.makedirs(output_dir, exist_ok=True)
 
@@ -122,10 +141,12 @@ os.makedirs(flow_dir, exist_ok=True)
 # 打開標註檔案
 with open(coco_json_path, 'r') as f:
     coco_data = json.load(f)
+with open(coco_json_path.replace('split_val_coco', 'merged_train'), 'r') as f:
+    coco_merge_data = json.load(f)
 
 # 創建新標註檔案
 new_coco_data = {'images': [], 'annotations': [], 'categories': coco_data['categories']} #創建新的json 字典
-new_annotation_id = len(coco_data['annotations']) + 1
+new_annotation_id = 29038 # merged train size is 29037
 
 # 圖片處理變數
 png_files = [f for f in os.listdir(bird_image_dir) if f.endswith('.png')] #過濾png檔案
@@ -183,7 +204,9 @@ if __name__ == "__main__":
 
         cv2.imwrite(os.path.join(prev_dir, prev_file_name), prev_frame)
         cv2.imwrite(os.path.join(copy_paste_dir, copy_paste_file_name), temp_image)
-        np.save(os.path.join(flow_dir, f'flow_{image_info["file_name"]}.npy'), flow)
+        flow_name = image_info['file_name'].split('.')[0]
+        # breakpoint()
+        np.save(os.path.join(flow_dir, f'flow_{flow_name}.npy'), flow)
         # cv2.imwrite(os.path.join(flow_visual_dir, flow_visual_file_name), visualize_optical_flow(flow)) #保存光流可視化圖片
 
 

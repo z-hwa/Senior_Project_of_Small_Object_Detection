@@ -7,6 +7,7 @@ _base_ = [
 pretrained="https://github.com/SwinTransformer/storage/releases/download/v1.0.8/swin_small_patch4_window7_224_22k.pth"
 
 model = dict(
+    type='FlowCascadeRCNN',
     backbone=dict(
         embed_dims=96,
         depths=[2, 2, 18, 2],
@@ -227,7 +228,6 @@ runner = dict(max_epochs=140)
 # 學習率調整策略
 # optimizer
 optimizer = dict(type='SGD', lr=0.005, momentum=0.9, weight_decay=0.0001)
-# optimizer = dict(type='SGD', lr=0.0005, momentum=0.9, weight_decay=0.0001)
 
 # Avoid evaluation and saving weights too frequently
 evaluation = dict(interval=5, metric='bbox')

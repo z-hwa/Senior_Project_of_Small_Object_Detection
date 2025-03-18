@@ -151,7 +151,7 @@ python tools/dist_test.py configs/_MyPlan/smot4sb/cascade_rcnn_swin_rfla_4stage_
 
 ### browse dataset
 python tools/misc/browse_dataset.py configs/_MyPlan/cascade_rcnn_finetune/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800.py [--show-interval ${SHOW_INTERVAL}]
-python tools/misc/browse_dataset.py configs/yolox/yolox_s_8x8_300e_coco.py --show 0
+python tools/misc/browse_dataset.py configs/_smot4sb/Time_Consider/cascade_mask_rcnn_swin_finetune_rfla_4stage.py --show 0
 
 ### fusion
 python tools/ensemble/ensemble.py data/mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json
