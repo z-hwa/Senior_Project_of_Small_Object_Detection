@@ -139,12 +139,14 @@ class LoadPreviousFrameFromFile:
                  file_dir="copy_paste_images",
                  file_prefix="copy_paste_",
                  last_frame_dir="prev_frames",
-                 last_frame_prefix="prev_"):
+                 last_frame_prefix="prev_",
+                 method='fake_dir'):
         self.to_float32 = to_float32
         self.color_type = color_type
         self.channel_order = channel_order
         self.file_client_args = file_client_args.copy()
         self.file_client = None
+        self.method = method
 
         # 來源路徑
         self.file_dir = file_dir
@@ -171,8 +173,24 @@ class LoadPreviousFrameFromFile:
         else:
             filename = results['img_info']['filename']
 
-        # Construct the previous frame filename
-        prev_filename = filename.replace(self.file_dir, self.last_frame_dir).replace(self.file_prefix, self.last_frame_prefix)
+        prev_file_name = ''
+        if self.method == 'video':
+            # 找出上一幀的檔案名稱
+            curr_file_name = results['img_info']['filename']
+            folder_name, frame_name = curr_file_name.split('/')
+            frame_number = int(frame_name.split('.')[0])
+            prev_frame_number = frame_number - 1
+
+            if prev_frame_number > -1:
+                # 第一幀的上一幀設為自己
+                if prev_frame_number == 0:
+                    prev_frame_number = 1
+
+                prev_file_name = f'{folder_name}/{prev_frame_number:05d}.jpg'  # 假設幀號為 5 位數字
+                prev_filename = osp.join(results['img_prefix'], prev_file_name)
+        elif self.method == 'fake_dir':
+            # Construct the previous frame filename
+            prev_filename = filename.replace(self.file_dir, self.last_frame_dir).replace(self.file_prefix, self.last_frame_prefix)
 
         img_bytes = self.file_client.get(prev_filename)
         prev_img = mmcv.imfrombytes(
