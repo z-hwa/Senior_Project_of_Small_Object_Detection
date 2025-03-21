@@ -1,6 +1,6 @@
 import os
 dataset_type = 'DroneDataset'  
-data_root = '/home/zhwa/Document/data/'
+data_root = '/root/Document/data/'
 
 # 修改增加多尺度輸入 2024.10.2
 # 復原2024.10.3
@@ -35,21 +35,21 @@ test_pipeline = [
     dict(type='LoadPreviousFrameFromFile', to_float32=True, color_type='color'), 
     dict(type='LoadOpticalFlowFromFile'),
     dict(
-        type='MultiScaleFlipAug',
-        scale_factor=1.0,
-        flip=False,
-        transforms=[
-            dict(type='Resize', keep_ratio=True),
-            dict(type='RandomFlip'),
-            dict(type='Normalize_for_2img', **img_norm_cfg),
-            dict(type='DefaultFormatBundle'),
-            dict(
-                type='Collect',
-                meta_keys=('filename', 'ori_shape', 'img_shape',
-                           'scale_factor', 'flip', 'flip_direction',
-                           'img_norm_cfg'),
-                keys=['img'])
-        ])
+    type='MultiScaleFlipAug',
+    scale_factor=1.0,
+    flip=False,
+    transforms=[
+        dict(type='Resize', keep_ratio=True),
+        dict(type='RandomFlip'),
+        dict(type='Normalize_for_2img', **img_norm_cfg),
+        dict(type='DefaultFormatBundle'),
+        dict(
+            type='Collect',
+            meta_keys=('filename', 'ori_shape', 'img_shape',
+                        'scale_factor', 'flip', 'flip_direction',
+                        'img_norm_cfg'),
+            keys=['img'])
+    ])
 ]
 
 data = dict(
@@ -57,8 +57,8 @@ data = dict(
     workers_per_gpu=1,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'fake_output_directory/val/val.json',
-        img_prefix=data_root + 'fake_output_directory/val/copy_paste_images',
+        ann_file=data_root + 'fake_output_directory/train/train.json',
+        img_prefix=data_root + 'fake_output_directory/train/copy_paste_images',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,

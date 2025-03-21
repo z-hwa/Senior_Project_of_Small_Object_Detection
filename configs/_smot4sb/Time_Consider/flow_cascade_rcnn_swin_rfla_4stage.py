@@ -227,7 +227,7 @@ runner = dict(max_epochs=140)
 
 # 學習率調整策略
 # optimizer
-optimizer = dict(type='SGD', lr=0.005, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0001)
 
 # Avoid evaluation and saving weights too frequently
 evaluation = dict(interval=5, metric='bbox')
@@ -235,4 +235,4 @@ checkpoint_config = dict(interval=1)
 
 # load_from = "work_dirs/cascade_mask_rcnn_swin_small_patch4_window7_mstrain_480-800_giou_4conv1f_adamw_3x_coco/epoch_40.pth"
 # load_from = "work_dirs/cascade_mask_rcnn_swin_finetune/first_ver/epoch_20.pth"
-# resume_from = "work_dirs/cascade_mask_rcnn_swin_finetune_rfla/epoch_46.pth"
+resume_from = "work_dirs/flow_cascade_rcnn_swin_rfla_4stage/epoch_10.pth"

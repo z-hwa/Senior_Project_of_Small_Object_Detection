@@ -15,6 +15,7 @@ except ImportError:
 
 import os.path as osp
 import io
+import cv2
 
 @PIPELINES.register_module()
 class LoadOpticalFlowFromFile:
@@ -38,13 +39,16 @@ class LoadOpticalFlowFromFile:
                  file_prefix="copy_paste_",
                  flow_dir="optical_flow",
                  flow_prefix="flow_",
-                 file_client_args=dict(backend='disk')):
+                 file_client_args=dict(backend='disk'),
+                 quantization_factor=10):
         self.file_dir = file_dir
         self.file_prefix = file_prefix
         self.flow_dir = flow_dir
         self.flow_prefix = flow_prefix
         self.file_client_args = file_client_args.copy()
         self.file_client = None
+        self.quantization_factor = quantization_factor  # 保存量化因子
+
     
     def visualize_optical_flow(self, flow):
         import cv2
@@ -64,13 +68,13 @@ class LoadOpticalFlowFromFile:
         cv2.destroyAllWindows()
 
     def __call__(self, results):
-        """Call functions to load optical flow from file.
+        """呼叫函數從檔案載入光流。
 
         Args:
-            results (dict): Result dict from :obj:`mmdet.CustomDataset`.
+            results (dict): 來自 :obj:`mmdet.CustomDataset` 的結果字典。
 
         Returns:
-            dict: The dict contains the optical flow (ndarray).
+            dict: 包含光流 (ndarray) 的字典。
         """
 
         if self.file_client is None:
@@ -81,11 +85,19 @@ class LoadOpticalFlowFromFile:
         else:
             filename = results['img_info']['filename']
 
-        # Construct the optical flow filename
+        # 構建光流檔案名稱
         flow_filename = filename.replace(self.file_dir, self.flow_dir).replace(self.file_prefix, self.flow_prefix).replace(".jpg", ".npy")
 
         flow_bytes = self.file_client.get(flow_filename)
-        flow = np.load(io.BytesIO(flow_bytes))
+        flow = np.load(io.BytesIO(flow_bytes)) #直接讀取
+
+        # 反量化
+        if flow.dtype == np.int16:
+            flow = flow.astype(np.float32) / self.quantization_factor
+
+        # 調整光流尺寸
+        original_h, original_w = results['img'].shape[:2]
+        flow = cv2.resize(flow, (original_w, original_h), interpolation=cv2.INTER_LINEAR)
 
         results['img'] = np.concatenate((results['img'], flow), axis=2)
 

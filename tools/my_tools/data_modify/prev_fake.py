@@ -97,33 +97,85 @@ def random_copy_paste_bird(image, bird_image, min_size=5, max_size=80):
     }
     return image, new_annotation, x, y, paste_w, paste_h
 
-def calculate_optical_flow(prev_frame, curr_frame):
-    """計算光流"""
-    prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
-    curr_gray = cv2.cvtColor(curr_frame, cv2.COLOR_BGR2GRAY)
-    flow = cv2.calcOpticalFlowFarneback(prev_gray, curr_gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-    return flow
+# def calculate_optical_flow(prev_frame, curr_frame):
+#     """計算光流 1:43.368"""
+#     prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+#     curr_gray = cv2.cvtColor(curr_frame, cv2.COLOR_BGR2GRAY)
+#     flow = cv2.calcOpticalFlowFarneback(prev_gray, curr_gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+#     return flow
 
-def visualize_optical_flow(flow):
-    """可視化光流場"""
+# def calculate_optical_flow(prev_frame, curr_frame, scale_factor=0.5):
+#     """計算光流，並降低解析度 1:10.85"""
+#     prev_resized = cv2.resize(prev_frame, None, fx=scale_factor, fy=scale_factor)
+#     curr_resized = cv2.resize(curr_frame, None, fx=scale_factor, fy=scale_factor)
+
+#     prev_gray = cv2.cvtColor(prev_resized, cv2.COLOR_BGR2GRAY)
+#     curr_gray = cv2.cvtColor(curr_resized, cv2.COLOR_BGR2GRAY)
+
+#     flow = cv2.calcOpticalFlowFarneback(prev_gray, curr_gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+
+#     # # 如果需要，將光流縮放回原始尺寸
+#     # flow_original_size = cv2.resize(flow, (curr_frame.shape[1], curr_frame.shape[0]))
+
+#     return flow
+
+def calculate_optical_flow(prev_frame, curr_frame, scale_factor=0.5, quantization_factor=10):
+    """計算光流，降低解析度，並量化 1:5.42"""
+    prev_resized = cv2.resize(prev_frame, None, fx=scale_factor, fy=scale_factor)
+    curr_resized = cv2.resize(curr_frame, None, fx=scale_factor, fy=scale_factor)
+
+    prev_gray = cv2.cvtColor(prev_resized, cv2.COLOR_BGR2GRAY)
+    curr_gray = cv2.cvtColor(curr_resized, cv2.COLOR_BGR2GRAY)
+
+    flow = cv2.calcOpticalFlowFarneback(prev_gray, curr_gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+
+    quantized_flow = np.round(flow * quantization_factor).astype(np.int16) # 量化
+
+    return quantized_flow
+
+def visualize_optical_flow(flow, quantization_factor=10):
+    """可視化光流場，支援量化後的光流"""
+    if flow is None or flow.ndim != 3 or flow.shape[-1] != 2:
+        print("Error: Invalid optical flow data.")
+        return None
+
+    print(f"Flow dtype: {flow.dtype}")  # 檢查資料類型
+    print(f"Flow shape: {flow.shape}")  # 檢查尺寸
+
+    if flow.dtype == np.int16 and quantization_factor is not None:
+        flow = flow.astype(np.float32) / quantization_factor  # 反量化並轉換為 float32
+    elif flow.dtype != np.float32:
+        flow = flow.astype(np.float32)  # 確保類型為 float32
+
     h, w = flow.shape[:2]
     hsv = np.zeros((h, w, 3), np.uint8)
     hsv[..., 1] = 255
 
     mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
     hsv[..., 0] = ang * 180 / np.pi / 2
-    hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+
+    # 處理 mag 全為零的情況
+    if np.max(mag) > 0:
+        hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+    else:
+        hsv[..., 2] = 0  # 如果 mag 全為零，則將 V 通道設為零
+
     bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
     return bgr
 
 # 範例程式碼
-image_dir = '/home/zhwa/Document/data/MVA2023/train/images'
-bird_image_dir = '/home/zhwa/Document/data/MVA2023/birds'
+# image_dir = '/home/zhwa/Document/data/MVA2023/train/images'
+# bird_image_dir = '/home/zhwa/Document/data/MVA2023/birds'
 
-coco_json_path = '/home/zhwa/Document/data/MVA2023/train/annotations/split_val_coco.json'
-output_dir = '/home/zhwa/Document/data/fake_output_directory/val'
-new_coco_json_path = os.path.join(output_dir, 'val.json') #新的json檔案路徑
+prefix = '/root/Document/data/'
+
+image_dir = prefix + 'MVA2023/train/images'
+bird_image_dir = prefix + 'MVA2023/birds'
+
+coco_json_path = prefix + 'MVA2023/train/annotations/split_train_coco.json'
+output_dir = prefix + 'fake_output_directory/train'
+new_coco_json_path = os.path.join(output_dir, 'train.json') #新的json檔案路徑
 
 os.makedirs(output_dir, exist_ok=True)
 
@@ -131,12 +183,12 @@ os.makedirs(output_dir, exist_ok=True)
 prev_dir = os.path.join(output_dir, 'prev_frames')
 copy_paste_dir = os.path.join(output_dir, 'copy_paste_images')
 flow_dir = os.path.join(output_dir, 'optical_flow')
-# flow_visual_dir = os.path.join(output_dir, 'optical_flow_visual') #新增存放光流可視化圖片的資料夾
+flow_visual_dir = os.path.join(output_dir, 'optical_flow_visual') #新增存放光流可視化圖片的資料夾
 
 os.makedirs(prev_dir, exist_ok=True)
 os.makedirs(copy_paste_dir, exist_ok=True)
 os.makedirs(flow_dir, exist_ok=True)
-# os.makedirs(flow_visual_dir, exist_ok=True)
+os.makedirs(flow_visual_dir, exist_ok=True)
 
 # 打開標註檔案
 with open(coco_json_path, 'r') as f:

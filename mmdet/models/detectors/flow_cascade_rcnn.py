@@ -126,6 +126,9 @@ class FlowCascadeRCNN(TwoStageDetector):
             warped_prev_feat = F.grid_sample(prev_feat, grid, mode='bilinear', align_corners=False)
             warped_prev_feats.append(warped_prev_feat)
 
+        # 釋放光流張量
+        del flow
+
         # print(type(curr_feats[0]))
         # self.visualize_feature_map_difference(curr_feats[0], prev_feats[0], curr_img, prev_img, 0)
         # breakpoint()
