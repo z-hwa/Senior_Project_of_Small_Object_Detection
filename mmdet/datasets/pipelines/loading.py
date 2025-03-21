@@ -40,7 +40,8 @@ class LoadOpticalFlowFromFile:
                  flow_dir="optical_flow",
                  flow_prefix="flow_",
                  file_client_args=dict(backend='disk'),
-                 quantization_factor=10):
+                 quantization_factor=10,
+                 method='fake_dir'):
         self.file_dir = file_dir
         self.file_prefix = file_prefix
         self.flow_dir = flow_dir
@@ -48,8 +49,8 @@ class LoadOpticalFlowFromFile:
         self.file_client_args = file_client_args.copy()
         self.file_client = None
         self.quantization_factor = quantization_factor  # 保存量化因子
+        self.method = method
 
-    
     def visualize_optical_flow(self, flow):
         import cv2
 
@@ -85,8 +86,18 @@ class LoadOpticalFlowFromFile:
         else:
             filename = results['img_info']['filename']
 
-        # 構建光流檔案名稱
-        flow_filename = filename.replace(self.file_dir, self.flow_dir).replace(self.file_prefix, self.flow_prefix).replace(".jpg", ".npy")
+        flow_filename = ''
+        if self.method == 'fake_dir':
+            # 構建光流檔案名稱
+            flow_filename = filename.replace(self.file_dir, self.flow_dir).replace(self.file_prefix, self.flow_prefix).replace(".jpg", ".npy")
+        elif self.method == 'video':
+            # 找出上一幀的檔案名稱
+            curr_file_name = results['img_info']['filename']
+            folder_name, frame_name = curr_file_name.split('/')
+            frame_number = int(frame_name.split('.')[0])
+
+            prev_file_name = f'{folder_name}/flow_{frame_number:05d}.npy'  # 假設幀號為 5 位數字
+            flow_filename = osp.join(results['img_prefix'], prev_file_name)
 
         flow_bytes = self.file_client.get(flow_filename)
         flow = np.load(io.BytesIO(flow_bytes)) #直接讀取

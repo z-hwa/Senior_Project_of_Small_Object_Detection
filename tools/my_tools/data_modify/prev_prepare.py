@@ -115,14 +115,17 @@ if __name__ == "__main__":
                 # 計算光流
                 flow = calculate_optical_flow(prev_frame, curr_frame)
 
+                # 確保資料夾存在
+                os.makedirs(os.path.join(flow_dir, f'{folder_name}/'), exist_ok=True)
+
                 # 保存光流數據
                 flow_name = frame_name.split('.')[0]
-                np.save(os.path.join(flow_dir, f'flow_{flow_name}.npy'), flow)
+                np.save(os.path.join(flow_dir, f'{folder_name}/flow_{flow_name}.npy'), flow)
 
                 # 可視化並保存光流
                 flow_visual = visualize_optical_flow(flow)
                 if flow_visual is not None:
-                    cv2.imwrite(os.path.join(flow_visual_dir, f'flow_visual_{flow_name}.png'), flow_visual)
+                    cv2.imwrite(os.path.join(flow_visual_dir, f'{folder_name}/flow_visual_{flow_name}.png'), flow_visual)
 
         processed_count += 1 #處理完成一張圖片，所以計數器加一
 
