@@ -147,7 +147,7 @@ python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_
 
 ### 生成centernet的pkl
 python tools/test.py configs/_smot4sb/Time_Consider/flow_cascade_rcnn_swin_rfla_4stage.py work_dirs/flow_cascade_rcnn_swin_rfla_4stage/epoch_5.pth --out result_val.pkl
-python tools/dist_test.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/cascade_mask_rcnn_swin_finetune_rfla_4stage.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/epoch_104.pth $GPU_NUM --out result_val.pkl
+python tools/test.py work_dirs/flow_cascade_rcnn_swin_rfla_4stage/flow_cascade_rcnn_swin_rfla_4stage.py work_dirs/flow_cascade_rcnn_swin_rfla_4stage/epoch_20.pth $GPU_NUM --out result_val.pkl
 
 ### browse dataset
 python tools/misc/browse_dataset.py configs/_MyPlan/cascade_rcnn_finetune/cascade_rcnn_r50_fpn_1x_coco_finetune_RC_800800.py [--show-interval ${SHOW_INTERVAL}]
@@ -157,4 +157,4 @@ python tools/misc/browse_dataset.py configs/_smot4sb/Time_Consider/cascade_mask_
 python tools/ensemble/ensemble.py data/mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json
 
 ### eval metric from pkl file
-python tools/analysis_tools/eval_metric.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/cascade_mask_rcnn_swin_finetune_rfla_4stage.py result_val.pkl --eval bbox
+python tools/analysis_tools/eval_metric.py work_dirs/flow_cascade_rcnn_swin_rfla_4stage/flow_cascade_rcnn_swin_rfla_4stage.py result_val.pkl --eval bbox

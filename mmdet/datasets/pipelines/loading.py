@@ -96,8 +96,8 @@ class LoadOpticalFlowFromFile:
             folder_name, frame_name = curr_file_name.split('/')
             frame_number = int(frame_name.split('.')[0])
 
-            prev_file_name = f'{folder_name}/flow_{frame_number:05d}.npy'  # 假設幀號為 5 位數字
-            flow_filename = osp.join(results['img_prefix'], prev_file_name)
+            flow_file_name = f'optical_flow/{folder_name}/flow_{frame_number:05d}.npy'  # 假設幀號為 5 位數字
+            flow_filename = osp.join(results['img_prefix'], flow_file_name)
 
         flow_bytes = self.file_client.get(flow_filename)
         flow = np.load(io.BytesIO(flow_bytes)) #直接讀取

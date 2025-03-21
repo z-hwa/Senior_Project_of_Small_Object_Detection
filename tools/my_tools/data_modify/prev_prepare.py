@@ -68,9 +68,10 @@ def visualize_optical_flow(flow, quantization_factor=10):
 
 # 筆電
 prefix = '/home/zhwa/Document/data/'
-image_dir = prefix + 'MVA2025/phase_1/unzip/pub_test'
-coco_json_path = prefix + 'MVA2025/phase_1/unzip/annotations/test_coco.json'
-output_dir = prefix + 'test_output_directory/test'
+image_dir = prefix + 'MVA2025/phase_1/unzip/train'
+# coco_json_path = prefix + 'MVA2025/phase_1/unzip/annotations/test_coco.json'
+coco_json_path = '/home/zhwa/Document/MVA2025-SMOT4SB/datasets/SMOT4SB/annotations/filtered_train.json'
+output_dir = prefix + 'MVA2025/phase_1/unzip/train'
 
 os.makedirs(output_dir, exist_ok=True)
 
@@ -123,14 +124,14 @@ if __name__ == "__main__":
                 np.save(os.path.join(flow_dir, f'{folder_name}/flow_{flow_name}.npy'), flow)
 
                 # 可視化並保存光流
-                flow_visual = visualize_optical_flow(flow)
-                if flow_visual is not None:
-                    cv2.imwrite(os.path.join(flow_visual_dir, f'{folder_name}/flow_visual_{flow_name}.png'), flow_visual)
+                # flow_visual = visualize_optical_flow(flow)
+                # if flow_visual is not None:
+                #     cv2.imwrite(os.path.join(flow_visual_dir, f'{folder_name}/flow_visual_{flow_name}.png'), flow_visual)
 
         processed_count += 1 #處理完成一張圖片，所以計數器加一
 
-        if processed_count > 5:
-            break
+        # if processed_count > 5:
+        #     break
 
         # 每處理完五張圖片，顯示一次進度條
         if processed_count % 5 == 0:
