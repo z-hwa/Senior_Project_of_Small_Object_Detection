@@ -38,6 +38,8 @@ def visualize_optical_flow(flow, quantization_factor=10):
 
     if flow.dtype == np.int16 and quantization_factor is not None:
         flow = flow.astype(np.float32) / quantization_factor  # 反量化並轉換為 float32
+    if flow.dtype == np.int8 and quantization_factor is not None:
+        flow = flow.astype(np.float32) / quantization_factor  # 反量化並轉換為 float32
     elif flow.dtype != np.float32:
         flow = flow.astype(np.float32)  # 確保類型為 float32
 
@@ -59,19 +61,16 @@ def visualize_optical_flow(flow, quantization_factor=10):
     return bgr
 
 # 主機
-# prefix = '/root/Document/data/'
-# image_dir = prefix + 'MVA2023/train/images'
-# bird_image_dir = prefix + 'MVA2023/birds'
-# coco_json_path = prefix + 'MVA2023/train/annotations/split_train_coco.json'
-# output_dir = prefix + 'output_directory/train'
-# new_coco_json_path = os.path.join(output_dir, 'train.json') #新的json檔案路徑
+prefix = '/root/Document/data/'
+image_dir = prefix + 'unzip/pub_test'
+coco_json_path = prefix + 'unzip/test_coco.json'
+output_dir = prefix + 'unzip/pub_test/'
 
 # 筆電
-prefix = '/home/zhwa/Document/data/'
-image_dir = prefix + 'MVA2025/phase_1/unzip/train'
-# coco_json_path = prefix + 'MVA2025/phase_1/unzip/annotations/test_coco.json'
-coco_json_path = '/home/zhwa/Document/MVA2025-SMOT4SB/datasets/SMOT4SB/annotations/filtered_train.json'
-output_dir = prefix + 'MVA2025/phase_1/unzip/train'
+# prefix = '/home/zhwa/Document/data/'
+# image_dir = prefix + 'MVA2025/phase_1/unzip/train'
+# coco_json_path = '/home/zhwa/Document/MVA2025-SMOT4SB/datasets/SMOT4SB/annotations/filtered_train.json'
+# output_dir = prefix + 'MVA2025/phase_1/unzip/train'
 
 os.makedirs(output_dir, exist_ok=True)
 
@@ -118,6 +117,7 @@ if __name__ == "__main__":
 
                 # 確保資料夾存在
                 os.makedirs(os.path.join(flow_dir, f'{folder_name}/'), exist_ok=True)
+                os.makedirs(os.path.join(flow_visual_dir, f'{folder_name}/'), exist_ok=True)
 
                 # 保存光流數據
                 flow_name = frame_name.split('.')[0]
@@ -126,11 +126,13 @@ if __name__ == "__main__":
                 # 可視化並保存光流
                 # flow_visual = visualize_optical_flow(flow)
                 # if flow_visual is not None:
+                #     path = os.path.join(flow_visual_dir, f'{folder_name}/flow_visual_{flow_name}.png')
+                #     print(f'save in {path}')
                 #     cv2.imwrite(os.path.join(flow_visual_dir, f'{folder_name}/flow_visual_{flow_name}.png'), flow_visual)
 
         processed_count += 1 #處理完成一張圖片，所以計數器加一
 
-        # if processed_count > 5:
+        # if processed_count > 20:
         #     break
 
         # 每處理完五張圖片，顯示一次進度條

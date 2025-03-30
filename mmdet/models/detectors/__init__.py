@@ -45,6 +45,8 @@ from .yolox import YOLOX
 
 from .dino import DINO
 from .flow_cascade_rcnn import FlowCascadeRCNN
+from .flow_cascade_rcnn_cos import FlowCascadeRCNN_COS
+from .stack_cascade_rcnn import StackCascadeRCNN
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -56,5 +58,5 @@ __all__ = [
     'DeformableDETR', 'AutoAssign', 'YOLOF', 'CenterNet', 'YOLOX',
     'TwoStagePanopticSegmentor', 'PanopticFPN', 'QueryInst', 'LAD', 'TOOD',
     'MaskFormer', 'Mask2Former', 'DINO',
-    'FlowCascadeRCNN'
+    'FlowCascadeRCNN', 'FlowCascadeRCNN_COS', 'StackCascadeRCNN'
 ]

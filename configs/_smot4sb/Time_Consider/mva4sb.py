@@ -32,8 +32,8 @@ train_pipeline = [
 
 test_pipeline = [
     dict(type='LoadImageFromFile', to_float32=True, color_type='color'), 
-    dict(type='LoadPreviousFrameFromFile', to_float32=True, color_type='color'), 
-    dict(type='LoadOpticalFlowFromFile'),
+    dict(type='LoadPreviousFrameFromFile', to_float32=True, color_type='color', method='video'), 
+    dict(type='LoadOpticalFlowFromFile', method='video'),
     dict(
     type='MultiScaleFlipAug',
     scale_factor=1.0,
@@ -62,11 +62,12 @@ data = dict(
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'fake_output_directory/val/val.json',
-        img_prefix=data_root + 'fake_output_directory/val/copy_paste_images',
+        ann_file=data_root + 'SMOT4SB/annotations/val.json',
+        img_prefix=data_root + 'SMOT4SB/val',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'fake_output_directory/val/val.json',
-        img_prefix=data_root + 'fake_output_directory/val/copy_paste_images',
+        ann_file = '/root/Document/data/MVA2025/annotations/test_coco.json',
+        img_prefix=
+        '/root/Document/data/MVA2025/pub_test',  
         pipeline=test_pipeline))

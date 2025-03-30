@@ -19,7 +19,7 @@ bash tools/train.sh configs/_MyPlan/Swin_Transformer/cascade_mask_rcnn_swin_smal
 echo "###############################"
 echo "Step 2: fine-tuning on data/mva2023_sod4bird_train"
 echo "###############################"
-bash tools/train.sh  configs/_smot4sb/Time_Consider/flow_cascade_rcnn_swin_rfla_4stage.py
+bash tools/train.sh  configs/_smot4sb/Time_Consider/flow_cascade_rcnn_cos_swin_rfla_4stage_finetune.py
 
 ###############################
 # Step 3: Generate predictions on data/mva2023_sod4bird_train to select hard negatives examples

@@ -134,11 +134,11 @@ python tools/analysis_tools/analyze_results.py work_dirs/cascade_rcnn_r50_fpn_1x
 python tools/analysis_tools/analyze_results.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla/cascade_mask_rcnn_swin_finetune_rfla.py work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune/result_train/result_train.pkl work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune/result_train/ --topk 100
 
 # 模型進行辨識後圖片展示的指令
-python tools/test.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage_window2/cascade_mask_rcnn_swin_finetune_rfla_4stage_window2.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage_window2/epoch_30.pth --show
+python tools/test.py configs/_smot4sb/Time_Consider/stack_cascade_rcnn_swin_rfla_4stage.py work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/epoch_104.pth --show
 
 # 查看訓練歷史
 ### 儲存為檔案 
-python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_r50_fpn_1x_coco_finetune_automatic/20240629_131115.log.json --out vis_log --keys loss
+python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/flow_cascade_rcnn_cos_swin_rfla_4stage/20250324_121745.log.json --keys loss
 ### 直接展示
 python ./tools/analysis_tools/analyze_logs.py work_dirs/cascade_rcnn_swin_rfla_4stage_focalLoss/20250312_222425.log --keys loss loss_rpn_cls loss_rpn_bbox
 

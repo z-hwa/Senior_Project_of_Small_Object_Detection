@@ -9,6 +9,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 import cv2
+import torch.nn as nn
 
 
 @DETECTORS.register_module()
@@ -102,7 +103,9 @@ class FlowCascadeRCNN(TwoStageDetector):
         plt.show()
 
     def extract_feat(self, img):
-        """Directly extract features from the backbone+neck."""
+        """
+        元素級相加的方式 融合特徵圖
+        Directly extract features from the backbone+neck."""
         # 分離輸入資料
 
         curr_img = img[:, :3, :, :]  # 當前幀 RGB
@@ -129,10 +132,6 @@ class FlowCascadeRCNN(TwoStageDetector):
         # 釋放光流張量
         del flow
 
-        # print(type(curr_feats[0]))
-        # self.visualize_feature_map_difference(curr_feats[0], prev_feats[0], curr_img, prev_img, 0)
-        # breakpoint()
-
         # 特徵融合
         enhanced_curr_feats = []
         for warped_prev_feat, curr_feat in zip(warped_prev_feats, curr_feats):
@@ -149,7 +148,7 @@ class FlowCascadeRCNN(TwoStageDetector):
             x = enhanced_curr_feats
 
         return x
-    
+
     def flow_to_grid(self, flow):
         """將光流轉換為 grid，用於 grid_sample."""
         b, _, h, w = flow.shape
@@ -160,7 +159,6 @@ class FlowCascadeRCNN(TwoStageDetector):
         grid[:, :, :, 0] = 2 * grid[:, :, :, 0] / (w - 1) - 1
         grid[:, :, :, 1] = 2 * grid[:, :, :, 1] / (h - 1) - 1
         return grid
-
 
     def show_result(self, data, result, **kwargs):
         """Show prediction results of the detector.
@@ -181,7 +179,7 @@ class FlowCascadeRCNN(TwoStageDetector):
         else:
             if isinstance(result, dict):
                 result = result['ensemble']
-        return super(CascadeRCNN, self).show_result(data, result, **kwargs)
+        return super(FlowCascadeRCNN, self).show_result(data, result, **kwargs)
 
     def set_epoch(self, epoch, epochs):
         self.roi_head.epoch = epoch
