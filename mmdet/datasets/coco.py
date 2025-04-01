@@ -246,7 +246,6 @@ class CocoDataset(CustomDataset):
             result = results[idx]
             for label in range(len(result)):
                 bboxes = result[label]
-                breakpoint()
                 for i in range(bboxes.shape[0]):
                     data = dict()
                     data['image_id'] = img_id

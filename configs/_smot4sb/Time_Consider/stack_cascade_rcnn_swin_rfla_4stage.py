@@ -1,6 +1,6 @@
 _base_ = [
     '../../_base_/models/cascade_mask_rcnn_swin_fpn_nwd.py',
-    './mva4sb_without_flow.py',
+    './without_flow.py',
     '../../_base_/schedules/schedule_1x.py', '../../_base_/default_runtime.py'
 ]
 
@@ -223,16 +223,16 @@ lr_config = dict(
     warmup_ratio=1.0 / 1000,
     step=[16, 19])
 
-runner = dict(max_epochs=140)
+runner = dict(max_epochs=10)
 
 # 學習率調整策略
 # optimizer
 optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0001)
 
 # Avoid evaluation and saving weights too frequently
-evaluation = dict(interval=5, metric='bbox')
+evaluation = dict(interval=20, metric='bbox')
 checkpoint_config = dict(interval=1)
 
 # load_from = "work_dirs/cascade_mask_rcnn_swin_small_patch4_window7_mstrain_480-800_giou_4conv1f_adamw_3x_coco/epoch_40.pth"
-# load_from = "work_dirs/cascade_mask_rcnn_swin_finetune/first_ver/epoch_20.pth"
+load_from = "work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/epoch_104.pth"
 # resume_from = "work_dirs/flow_cascade_rcnn_swin_rfla_4stage/epoch_10.pth"

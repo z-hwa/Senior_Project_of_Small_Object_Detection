@@ -20,7 +20,7 @@ another_model.json # NO_FILTER
 
 Bash
 
-python tools/ensemble/ensemble.py your_annotation_file.json --min_size 32
+python tools/ensemble/ensemble.py /root/Document/data/MVA2025/annotations/test_coco.json --min_size 32
 '''
 
 def normalization(bbox, width=3840, height=2160):
@@ -46,7 +46,7 @@ def bbox_formatting(bboxes, scores , image_id, output):
         cur_box['image_id'] = image_id
         cur_box['bbox'] = xyxy2xywh(denorm(bboxes[i]))
         cur_box['score'] = scores[i]
-        cur_box['category_id'] = 0
+        cur_box['category_id'] = 1
         output.append(cur_box)
     return output
 
@@ -136,14 +136,7 @@ parser.add_argument("annotation_file", help="The path to annotation file")
 parser.add_argument("--min_size", type=int, default=32, help="Minimum bbox size (width and height) to consider for filtering")
 args = parser.parse_args()
 
-ensemble('tools/ensemble/config.txt', 'results_selective_filter.json', args.annotation_file, weights=[2, 7, 8, 9], min_bbox_size=args.min_size)
-
-parser = argparse.ArgumentParser(description='Ensemble Choices')
-parser.add_argument("annotation_file", help="The path to annotation file")
-args = parser.parse_args()
-
-
-ensemble('tools/ensemble/config.txt', 'results_smot4sb.json', args.annotation_file, weights=[2, 7, 8, 9])
+ensemble('tools/ensemble/config.txt', 'results_selective_filter.json', args.annotation_file, weights=[2, 4], min_bbox_size=args.min_size)
 
 # python tools/ensemble/ensemble.py data/mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json
 # python tools/ensemble/ensemble.py /root/Document/MVA2025-SMOT4SB/datasets/SMOT4SB/annotations/test_coco.json

@@ -59,7 +59,8 @@ class StackCascadeRCNN(TwoStageDetector):
         """Test without augmentation."""
 
         assert self.with_bbox, 'Bbox head must be implemented.'
-        x = self.ori_extract_feat(img)
+        x = self.extract_feat(img)
+        # breakpoint()
 
         if proposals is None:
             proposal_list = self.rpn_head.simple_test_rpn(x, img_metas)
@@ -69,14 +70,14 @@ class StackCascadeRCNN(TwoStageDetector):
         return self.roi_head.simple_test(
             x, proposal_list, img_metas, rescale=rescale)
 
-    def ori_extract_feat(self, img):
+    def extract_feat(self, img):
         """Directly extract features from the backbone+neck."""
         x = self.backbone(img)
         if self.with_neck:
             x = self.neck(x)
         return x
 
-    def extract_feat(self, img, mask):
+    def stack_extract_feat(self, img, mask):
         backbone_features = self.backbone(img)
 
         if not isinstance(backbone_features, tuple) and not isinstance(backbone_features, list):
@@ -155,8 +156,8 @@ class StackCascadeRCNN(TwoStageDetector):
         # plt.show()
 
         assert self.with_bbox, 'Bbox head must be implemented.'
-        x = self.extract_feat(frame, mask)
-        breakpoint()
+        x = self.stack_extract_feat(frame, mask)
+        # breakpoint()
 
         if proposals is None:
             proposal_list = self.rpn_head.simple_test_rpn(x, img_metas)

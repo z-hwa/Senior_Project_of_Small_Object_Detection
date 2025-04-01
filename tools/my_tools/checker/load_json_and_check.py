@@ -460,8 +460,8 @@ def search_confidence(navigator=None):
 
 
 
-default_config_path = 'work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/cascade_mask_rcnn_swin_finetune_rfla_4stage.py'
-default_json_file = 'work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/results_val.json'
+default_config_path = 'work_dirs/flow_cascade_rcnn_cos_swin_rfla_4stage_finetune/flow_cascade_rcnn_cos_swin_rfla_4stage_finetune.py'
+default_json_file = 'coco_results.bbox.json'
 args = setting_parser()
 
 # 根據 --custom 標誌決定是否手動選擇路徑
