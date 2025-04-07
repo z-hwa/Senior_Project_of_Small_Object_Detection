@@ -16,6 +16,152 @@ except ImportError:
 import os.path as osp
 import io
 import cv2
+import json
+import os
+
+
+@PIPELINES.register_module()
+class LoadPastAnnotations:
+
+    def __init__(self,
+                 stack_threshold=None,
+                 pred_path=None,
+                 empty_path=None,
+                 past_range=1,
+                 max_preds=20):
+        
+        self.past_range = past_range
+
+        # 來源路徑
+        self.stack_threshold = 0.7 if stack_threshold == None else stack_threshold
+        self.pred_anno = self.load_json(file_path=pred_path)
+        self.empty_anno = self.load_json(file_path=empty_path)
+
+        self.converted_results = self.convert_coco_predictions(self.pred_anno, self.empty_anno)
+        self.c_id = self.pred_anno[0]["category_id"]
+        self.max_preds = max_preds  # 保存最大預測數
+
+    def __call__(self, results):
+
+        # 針對上一幀進行處理
+        # 獲取上一批圖片得到的預測框位置(x1, y1, x2, y2)
+        filename = results['img_info']['filename']
+
+        # 查詢預測結果表 進行推理
+        sub_path = "/".join(filename.split('/')[-2:])
+        current_frame_num_str = os.path.splitext(sub_path.split('/')[-1])[0]
+
+        current_frame_num = int(current_frame_num_str)
+        detections = []
+
+        # past
+        prev_frame_num = current_frame_num - 1
+        if prev_frame_num > 0:
+            frame_num_str = f"{prev_frame_num:05d}"  # 假設是5位數字
+            sub_path_parts = sub_path.split('/')
+            sub_path_parts[-1] = frame_num_str + os.path.splitext(sub_path.split('/')[-1])[1]
+            sub_path = "/".join(sub_path_parts)
+
+        if sub_path in self.converted_results and self.c_id in self.converted_results[sub_path]:
+            preds = self.converted_results[sub_path][self.c_id]
+            valid_preds = preds[preds[:, 4] > self.stack_threshold]
+            num_valid = valid_preds.shape[0]
+            if num_valid < self.max_preds:
+                padding = np.zeros((self.max_preds - num_valid, 5), dtype=valid_preds.dtype)
+                valid_preds_padded = np.concatenate([valid_preds, padding], axis=0)
+            elif num_valid > self.max_preds:
+                valid_preds_padded = valid_preds[:self.max_preds]
+            else:
+                valid_preds_padded = valid_preds
+            detections.append(valid_preds_padded)
+        else:
+            detections.append(np.zeros((self.max_preds, 5)))  # 填充 20 個分數為 0 的框
+
+        # future
+        fut_frame_num = current_frame_num + 1
+        if fut_frame_num < len(self.converted_results):
+            frame_num_str = f"{fut_frame_num:05d}"  # 假設是5位數字
+            sub_path_parts = sub_path.split('/')
+            sub_path_parts[-1] = frame_num_str + os.path.splitext(sub_path.split('/')[-1])[1]
+            sub_path = "/".join(sub_path_parts)
+
+        if sub_path in self.converted_results and self.c_id in self.converted_results[sub_path]:
+            preds = self.converted_results[sub_path][self.c_id]
+            valid_preds = preds[preds[:, 4] > self.stack_threshold]
+            num_valid = valid_preds.shape[0]
+            if num_valid < self.max_preds:
+                padding = np.zeros((self.max_preds - num_valid, 5), dtype=valid_preds.dtype)
+                valid_preds_padded = np.concatenate([valid_preds, padding], axis=0)
+            elif num_valid > self.max_preds:
+                valid_preds_padded = valid_preds[:self.max_preds]
+            else:
+                valid_preds_padded = valid_preds
+            detections.append(valid_preds_padded)
+        else:
+            detections.append(np.zeros((self.max_preds, 5)))  # 填充 20 個分數為 0 的框
+
+        # Stack the previous frame image with the original image
+        results['past_prediction'] = { "past_det": detections # list 每一個位置相當於過去k帧 現在只支援一帧
+                                       }
+        # # Add breakpoint here
+        # breakpoint()
+
+        return results
+       
+    def load_json(self, file_path):
+        """載入 JSON 檔案"""
+        with open(file_path, "r") as f:
+            return json.load(f)
+
+    def convert_coco_predictions(self, coco_predictions, empty_annotations):
+        """
+        將 COCO 預測結果轉換為 {file_name: tensor_list} 結構。
+        
+        :param coco_predictions: COCO 格式的預測結果 (list of dicts)
+        :param empty_annotations: 原始空標註資料，應包含 {"images": [{"id": X, "file_name": "path/to/image"}, ...]}
+        :return: dict，key 為 file_name，value 為該圖片的預測結果 tensor list
+        """
+        # 建立 image_id 到 file_name 的映射
+        image_id_to_file = {img["id"]: img["file_name"] for img in empty_annotations["images"]}
+        
+        # 建立 {file_name: list of tensors} 結構
+        results = {}
+        for pred in coco_predictions:
+            image_id = pred["image_id"]
+            file_name = image_id_to_file.get(image_id, None)
+            if file_name is None:
+                continue
+            
+            bbox = pred["bbox"]  # [x, y, w, h]
+            score = pred["score"]
+            category_id = pred["category_id"]
+
+            # 轉換為 [x1, y1, x2, y2, score]，符合 MMDetection 格式
+            x1, y1, w, h = bbox
+            x2, y2 = x1 + w, y1 + h
+            bbox_data = np.array([x1, y1, x2, y2, score])
+
+            # 初始化該圖片的分類列表
+            if file_name not in results:
+                results[file_name] = {}
+
+            # 把 bbox 存入對應類別的 list
+            if category_id not in results[file_name]:
+                results[file_name][category_id] = []
+            
+            results[file_name][category_id].append(bbox_data)
+        
+        # 把 list 轉成 numpy array，確保格式一致
+        for file_name in results:
+            for category_id in results[file_name]:
+                results[file_name][category_id] = np.array(results[file_name][category_id])
+        
+        return results
+
+    def __repr__(self):
+        repr_str = (f'{self.__class__.__name__}('
+                    f'past_annotations_range={self.past_range})')
+        return repr_str
 
 @PIPELINES.register_module()
 class LoadOpticalFlowFromFile:

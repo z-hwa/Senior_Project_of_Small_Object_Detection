@@ -20,7 +20,7 @@ another_model.json # NO_FILTER
 
 Bash
 
-python tools/ensemble/ensemble.py /root/Document/data/MVA2025/annotations/test_coco.json --min_size 32
+python tools/ensemble/ensemble_filter.py /root/Document/data/MVA2025/annotations/test_coco.json --min_size 32
 '''
 
 def normalization(bbox, width=3840, height=2160):

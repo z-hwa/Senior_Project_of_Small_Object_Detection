@@ -1,2 +1,2 @@
-work_dirs/flow_cascade_rcnn_cos_swin_rfla_4stage_finetune/results_smot4sb_pub_test.json # FILTER_SMALL
-work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/results.bbox.json
+work_dirs/flow_cascade_rcnn_cos_swin_rfla_4stage_finetune/results_smot4sb_pub_test.json
+work_dirs/stack_cascade_rcnn_swin_rfla_4stage/results_stack.json

@@ -9,6 +9,8 @@ from pycocotools.coco import COCO
 # bbox_lists = [bbox_per_file1, ...  ]
 
 '''
+python tools/ensemble/ensemble.py /root/Document/data/MVA2025/annotations/test_coco.json
+
 1. 引入函式庫：
 
 ensemble_boxes.weighted_boxes_fusion: 用於執行加權框融合的核心函式。
@@ -158,7 +160,4 @@ parser.add_argument("annotation_file", help="The path to annotation file")
 args = parser.parse_args()
 
 
-ensemble('tools/ensemble/config.txt', 'results_smot4sb.json', args.annotation_file, weights=[2, 7, 8, 9])
-
-# python tools/ensemble/ensemble.py data/mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json
-# python tools/ensemble/ensemble.py /root/Document/MVA2025-SMOT4SB/datasets/SMOT4SB/annotations/test_coco.json
+ensemble('tools/ensemble/config.txt', 'results_smot4sb.json', args.annotation_file, weights=[2, 4])

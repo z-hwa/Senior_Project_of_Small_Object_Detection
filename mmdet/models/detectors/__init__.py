@@ -47,6 +47,8 @@ from .dino import DINO
 from .flow_cascade_rcnn import FlowCascadeRCNN
 from .flow_cascade_rcnn_cos import FlowCascadeRCNN_COS
 from .stack_cascade_rcnn import StackCascadeRCNN
+from .stack_cascade_rcnn_from_json import StackCascadeRCNNFromJson
+from .stack_cascade_rcnn_v2 import StackCascadeRCNNV2
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -58,5 +60,6 @@ __all__ = [
     'DeformableDETR', 'AutoAssign', 'YOLOF', 'CenterNet', 'YOLOX',
     'TwoStagePanopticSegmentor', 'PanopticFPN', 'QueryInst', 'LAD', 'TOOD',
     'MaskFormer', 'Mask2Former', 'DINO',
-    'FlowCascadeRCNN', 'FlowCascadeRCNN_COS', 'StackCascadeRCNN'
+    'FlowCascadeRCNN', 'FlowCascadeRCNN_COS', 'StackCascadeRCNN', 'StackCascadeRCNNFromJson',
+    'StackCascadeRCNNV2'
 ]
