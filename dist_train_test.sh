@@ -143,7 +143,7 @@ python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/flow_cascade_
 python ./tools/analysis_tools/analyze_logs.py work_dirs/cascade_rcnn_swin_rfla_4stage_focalLoss/20250312_222425.log --keys loss loss_rpn_cls loss_rpn_bbox
 
 # 所有定位相關的loss
-python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_mask_rcnn_swin_finetune_rfla_pretrained_swinRepo/20241217_193238.log.json --keys loss loss_rpn_bbox s0.loss_bbox s1.loss_bbox s2.loss_bbox
+python ./tools/analysis_tools/analyze_logs.py plot_curve work_dirs/cascade_rcnn_swin_rfla_4stage_diou/20250408_153331.log.json --keys loss loss_rpn_bbox s0.loss_bbox s1.loss_bbox s2.loss_bbox
 
 ### 生成centernet的pkl
 python tools/test.py configs/_smot4sb/Time_Consider/flow_cascade_rcnn_swin_rfla_4stage.py work_dirs/flow_cascade_rcnn_swin_rfla_4stage/epoch_5.pth --out result_val.pkl

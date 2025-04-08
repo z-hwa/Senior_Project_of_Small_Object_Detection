@@ -1,6 +1,6 @@
 import os
 dataset_type = 'DroneDataset'  
-data_root = "/root/Document/mva2023" + '/data/'
+data_root = "/root/Document" + '/data/MVA2023/'
 
 # 修改增加多尺度輸入 2024.10.2
 # 復原2024.10.3
@@ -20,7 +20,7 @@ train_pipeline = [
         minW=5,
         maxW=80,
         num_range_per_image=[0, 5],
-        bbox_path="data/birds/"),
+        bbox_path="/root/Document/data/MVA2023/birds/"),
     dict(
         type='PhotoMetricDistortion',
         brightness_delta=32,

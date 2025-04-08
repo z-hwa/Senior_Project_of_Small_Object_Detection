@@ -95,7 +95,13 @@ data = dict(
         pipeline=val_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file = '/root/Document/data/MVA2025/annotations/test_coco.json',
-        img_prefix=
-        '/root/Document/data/MVA2025/pub_test',  
-        pipeline=test_pipeline))
+        ann_file=data_root + 'SMOT4SB/annotations/val.json',
+        img_prefix=data_root + 'SMOT4SB/val',
+        pipeline=val_pipeline),
+    # test=dict(
+    #     type=dataset_type,
+    #     ann_file = '/root/Document/data/MVA2025/annotations/test_coco.json',
+    #     img_prefix=
+    #     '/root/Document/data/MVA2025/pub_test',  
+    #     pipeline=test_pipeline)
+        )

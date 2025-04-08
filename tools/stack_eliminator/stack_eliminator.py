@@ -97,9 +97,13 @@ def save_coco_predictions(predictions, output_path, image_id_to_name):
         json.dump(coco_output, f)
     print(f"Filtered predictions saved to {output_path}")
 
-pred_path = 'work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/results_smot4sb_phase2.json'
-empty_path = '/root/Document/data/MVA2025/annotations/test_coco.json'
-output_path = 'filtered_results.json'
+pred_path = 'work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/results_smot4sb_val.bbox.json'
+empty_path = '/root/Document/data/SMOT4SB/annotations/val.json'
+output_path = 'filtered_results_smot4sb_val.json'
+
+# pred_path = 'work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/results_smot4sb_phase2.json'
+# empty_path = '/root/Document/data/MVA2025/annotations/test_coco.json'
+# output_path = 'filtered_results.json'
 voter_range = {'prev': 3, 'fut': 2}
 
 if __name__ == '__main__':
