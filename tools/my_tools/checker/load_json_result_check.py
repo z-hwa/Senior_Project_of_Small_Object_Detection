@@ -21,6 +21,10 @@ class ImageNavigator:
         self.coco = COCO(ann_file)
         self.img_ids = list(self.coco.imgs.keys())
         self.predictions = self._load_predictions()
+        
+        self.gt = None
+        with open(self.ann_file, 'r') as f:
+            self.gt = json.load(f)
 
         # 創建圖形和兩個子圖
         self.fig, self.ax = plt.subplots(1, 1, figsize=(10, 10))
@@ -59,6 +63,7 @@ class ImageNavigator:
 
         pred_bboxes = self.search_by_image_id(img_id)
         pred_bboxes_formatted = []
+        # breakpoint()
         if not pred_bboxes.empty:
             pred_bboxes_formatted = [
                 [x[0], x[1], x[0] + x[2], x[1] + x[3], score]
@@ -66,16 +71,19 @@ class ImageNavigator:
                 if score > self.confidence_threshold
             ]
 
+        # breakpoint()
+        image_annotations = [ann for ann in self.gt['annotations'] if ann['image_id'] == img_id]
+
         # 清空上一張圖片的內容
         self.ax.clear()
 
         # 顯示帶框圖片
-        self.plot_image_with_boxes(img, pred_bboxes_formatted, self.ax, title=f"Image ID: {img_id}")
+        self.plot_image_with_boxes(img, pred_bboxes_formatted, self.ax, boxes_gt=image_annotations, title=f"Image ID: {img_id}")
 
         # 顯示圖片
         self.fig.canvas.draw()
 
-    def plot_image_with_boxes(self, image, boxes, ax, title=""):
+    def plot_image_with_boxes(self, image, boxes, ax, boxes_gt=None, title=""):
         '''
         為圖片添加bboxes 用於可視化
         '''
@@ -90,6 +98,16 @@ class ImageNavigator:
                 ax.add_patch(rect)
                 ax.text(x1, y1, f'{score:.2f}', color='black', fontsize=12, weight='bold',
                         bbox=dict(facecolor='white', edgecolor='none', alpha=0.3))
+                
+        if boxes_gt:
+            for box in boxes_gt:
+                # breakpoint()
+                x1, y1, w, h = box['bbox']
+                # breakpoint()
+                rect = plt.Rectangle((x1, y1), w, h, linewidth=2, edgecolor='g', facecolor='none')
+                ax.add_patch(rect)
+                ax.text(x1, y1, 'gt', color='black', fontsize=12, weight='bold',
+                        bbox=dict(facecolor='white', edgecolor='none', alpha=0.3))
 
     def next_image(self, event):
         '''切換到下一張圖片'''
@@ -98,8 +116,8 @@ class ImageNavigator:
             self.index = 0  # 如果是最後一張，回到第一張
         self.update_image()
 
-default_config_path = 'work_dirs/flow_cascade_rcnn_cos_swin_rfla_4stage_finetune/flow_cascade_rcnn_cos_swin_rfla_4stage_finetune.py'
-default_json_file = 'coco_results.bbox.json'
+default_config_path = 'configs/_smot4sb/Swin_4stage/cascade_rcnn_swin_b_rfla_4stage.py'
+default_json_file = 'best_result/results_smot4sb_val.bbox.json'
 
 # 載入配置檔案 (僅用於獲取 img_prefix)
 cfg = Config.fromfile(default_config_path)
