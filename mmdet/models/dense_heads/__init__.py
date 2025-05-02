@@ -41,6 +41,7 @@ from .yolof_head import YOLOFHead
 from .yolox_head import YOLOXHead
 
 from .dino_head import DINOHead
+from .rpn_DCNv3_head import RPN_DCNv3_Head
 
 __all__ = [
     'AnchorFreeHead', 'AnchorHead', 'GuidedAnchorHead', 'FeatureAdaption',
@@ -54,5 +55,6 @@ __all__ = [
     'AutoAssignHead', 'DETRHead', 'YOLOFHead', 'DeformableDETRHead',
     'SOLOHead', 'DecoupledSOLOHead', 'CenterNetHead', 'YOLOXHead',
     'DecoupledSOLOLightHead', 'LADHead', 'TOODHead', 'MaskFormerHead',
-    'Mask2FormerHead', 'DINOHead'
+    'Mask2FormerHead', 'DINOHead',
+    'RPN_DCNv3_Head'
 ]

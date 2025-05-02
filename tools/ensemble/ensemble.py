@@ -84,7 +84,7 @@ def bbox_formatting(bboxes, scores , image_id, output):
         cur_box['image_id'] = image_id
         cur_box['bbox'] = xyxy2xywh(denorm(bboxes[i]))
         cur_box['score'] = scores[i]
-        cur_box['category_id'] = 0
+        cur_box['category_id'] = 1
         output.append(cur_box)
     return output
 
@@ -160,4 +160,4 @@ parser.add_argument("annotation_file", help="The path to annotation file")
 args = parser.parse_args()
 
 
-ensemble('tools/ensemble/config.txt', 'results_smot4sb.json', args.annotation_file, weights=[2, 4])
+ensemble('tools/ensemble/config.txt', 'results_smot4sb.json', args.annotation_file, weights=[1, 1])

@@ -249,8 +249,32 @@ class AnchorHead(BaseDenseHead, BBoxTestMixin):
         assign_result = self.assigner.assign(
             anchors, gt_bboxes, gt_bboxes_ignore,
             None if self.sampling else gt_labels)
+        
+        sampling_result = None
+
+        # # ohem
+        # if self.train_cfg.sampler.ohem == True and self.train_cfg.sampler.type == 'RandomSamplerOHEM':
+        #     hard_examples_list = img_meta['hard_example']['hard']
+        #     # 將 list 轉換為 Tensor，並確保資料類型正確
+        #     if hard_examples_list:
+        #         hard_examples_tensor = anchors.new_tensor(hard_examples_list)
+        #     else:
+        #         # 如果 list 為空，創建一個空的 Tensor，避免後續操作出錯
+        #         hard_examples_tensor = anchors.new_zeros((0, 4)) # 假設每個框是 4 個坐標值
+
+        #     assign_result_ohem = self.assigner.assign(
+        #         anchors, hard_examples_tensor, gt_bboxes_ignore,
+        #         None if self.sampling else gt_labels)
+
+        #     sampling_result = self.sampler.sample(assign_result, assign_result_ohem, anchors,
+        #                             gt_bboxes)   
+
+        #     # breakpoint() 
+        
+        # else:
         sampling_result = self.sampler.sample(assign_result, anchors,
-                                              gt_bboxes)
+                                                gt_bboxes)
+            # breakpoint()
 
         num_valid_anchors = anchors.shape[0]
         bbox_targets = torch.zeros_like(anchors)
@@ -365,6 +389,7 @@ class AnchorHead(BaseDenseHead, BBoxTestMixin):
             gt_bboxes_ignore_list = [None for _ in range(num_imgs)]
         if gt_labels_list is None:
             gt_labels_list = [None for _ in range(num_imgs)]
+
         results = multi_apply(
             self._get_targets_single,
             concat_anchor_list,

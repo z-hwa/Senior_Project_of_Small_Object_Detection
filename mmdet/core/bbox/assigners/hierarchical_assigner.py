@@ -250,8 +250,6 @@ class HieAssigner(BaseAssigner):
 
         return assigned_gt_inds
 
-
-
     def reassign_wrt_ranking(self, assign_result, overlaps, k, gt_labels=None):
 
         
@@ -312,9 +310,6 @@ class HieAssigner(BaseAssigner):
         return AssignResult(
             num_gts, assigned_gt_inds, max_overlaps, labels=assigned_labels)
 
-    
-
-
     def anchor_rescale(self, bboxes, ratio):
         center_x2 = (bboxes[..., 2] + bboxes[..., 0]) / 2
         center_y2 = (bboxes[..., 3] + bboxes[..., 1]) / 2
@@ -326,7 +321,6 @@ class HieAssigner(BaseAssigner):
         bboxes[..., 3] = center_y2 + h2*ratio/2
         
         return bboxes
-
 
     def anchor_offset(self, bboxes, ratio):
         center_x2 = (bboxes[..., 2] + bboxes[..., 0]) / 2

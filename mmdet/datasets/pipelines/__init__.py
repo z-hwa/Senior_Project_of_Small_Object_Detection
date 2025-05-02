@@ -8,7 +8,8 @@ from .formatting import (Collect, DefaultFormatBundle, ImageToTensor,
 from .instaboost import InstaBoost
 from .loading import (LoadAnnotations, LoadImageFromFile, LoadImageFromWebcam,
                       LoadMultiChannelImageFromFiles, LoadPanopticAnnotations,
-                      LoadProposals, LoadPreviousFrameFromFile, LoadOpticalFlowFromFile, LoadPastAnnotations)
+                      LoadProposals, LoadPreviousFrameFromFile, LoadOpticalFlowFromFile, LoadPastAnnotations,
+                      LoadPastHard)
 from .test_time_aug import MultiScaleFlipAug
 from .transforms import (Albu, CopyPaste, CutOut, Expand, MinIoURandomCrop,
                          MixUp, Mosaic, Normalize, Pad, PhotoMetricDistortion,
@@ -36,5 +37,6 @@ __all__ = [
     'RandomAffine', 'YOLOXHSVRandomAug', 'CopyPaste', 'MVARandomCrop', 'MVAPasteBirds', 'Sharpen', 'LoadPreviousFrameFromFile',
     'LoadOpticalFlowFromFile',
     'PhotoMetricDistortion_for_2image','Normalize_for_2img',
-    'LoadPastAnnotations'
+    'LoadPastAnnotations',
+    'LoadPastHard'
 ]

@@ -49,6 +49,7 @@ from .flow_cascade_rcnn_cos import FlowCascadeRCNN_COS
 from .stack_cascade_rcnn import StackCascadeRCNN
 from .stack_cascade_rcnn_from_json import StackCascadeRCNNFromJson
 from .stack_cascade_rcnn_v2 import StackCascadeRCNNV2
+from .cascade_rcnn_double_backbone import CascadeRCNN_DoubleBackbone
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -61,5 +62,6 @@ __all__ = [
     'TwoStagePanopticSegmentor', 'PanopticFPN', 'QueryInst', 'LAD', 'TOOD',
     'MaskFormer', 'Mask2Former', 'DINO',
     'FlowCascadeRCNN', 'FlowCascadeRCNN_COS', 'StackCascadeRCNN', 'StackCascadeRCNNFromJson',
-    'StackCascadeRCNNV2'
+    'StackCascadeRCNNV2',
+    'CascadeRCNN_DoubleBackbone'
 ]

@@ -11,6 +11,9 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='LoadImageFromFile', to_float32=True, color_type='color'), 
     dict(type='LoadAnnotations', with_bbox=True), 
+    dict(type='LoadPastHard',
+        pred_path='work_dirs/cascade_mask_rcnn_swin_finetune_rfla_4stage/results_smot4sb_train.bbox.json',
+        empty_path= "/root/Document/data/SMOT4SB/annotations/train.json"),
     dict( 
         type='MVARandomCrop',
         crop_size=(800,800),
@@ -32,7 +35,11 @@ train_pipeline = [
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
-    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
+    dict(type='Collect', 
+        meta_keys=('filename', 'ori_filename', 'ori_shape', 'img_shape',
+            'pad_shape', 'scale_factor', 'flip', 'flip_direction',
+            'img_norm_cfg', 'hard_example'),
+        keys=['img', 'gt_bboxes', 'gt_labels'])
 ]
 
 test_pipeline = [
@@ -61,8 +68,10 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'train/annotations/split_train_coco.json',
-        img_prefix=data_root + 'train/images/',
+        ann_file= "/root/Document/data/SMOT4SB/annotations/train.json",
+        img_prefix= "/root/Document/data/SMOT4SB/train",
+        # ann_file=data_root + 'train/annotations/split_train_coco.json',
+        # img_prefix=data_root + 'train/images/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
@@ -71,8 +80,7 @@ data = dict(
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        # ann_file=data_root + 'mva2023_sod4bird_train/annotations/split_val_coco.json',
-        # img_prefix=data_root + 'mva2023_sod4bird_train/images/',
-        ann_file=data_root + 'mva2023_sod4bird_pub_test/annotations/public_test_coco_empty_ann.json',
-        img_prefix=data_root + 'mva2023_sod4bird_pub_test/images/',
+        ann_file = '/root/Document/data/MVA2025/annotations/test_coco.json',
+        img_prefix=
+        '/root/Document/data/MVA2025/pub_test', 
         pipeline=test_pipeline))

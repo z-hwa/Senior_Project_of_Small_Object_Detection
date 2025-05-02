@@ -18,6 +18,344 @@ import io
 import cv2
 import json
 import os
+import torch
+
+def fp16_clamp(x, min=None, max=None):
+    if not x.is_cuda and x.dtype == torch.float16:
+        # clamp for cpu float16, tensor fp16 has no clamp implementation
+        return x.float().clamp(min, max).half()
+
+    return x.clamp(min, max)
+
+@PIPELINES.register_module()
+class LoadPastHard:
+
+    def __init__(self,
+                 pred_path=None,
+                 empty_path=None,
+                 past_range=1,
+                 max_preds=20):
+        
+        self.past_range = past_range
+
+        # 來源路徑
+        self.pred_anno = self.load_json(file_path=pred_path)
+        self.empty_anno = self.load_json(file_path=empty_path)
+
+        self.converted_results = self.convert_coco_predictions(self.pred_anno, self.empty_anno)
+        self.c_id = self.pred_anno[0]["category_id"]
+        self.max_preds = max_preds  # 保存最大預測數
+
+    def __call__(self, results):
+
+        # 針對上一幀進行處理
+        # 獲取上一批圖片得到的預測框位置(x1, y1, x2, y2)
+        filename = results['img_info']['filename']
+
+        # 查詢預測結果表 進行推理
+        sub_path = "/".join(filename.split('/')[-2:])
+        current_frame_num_str = os.path.splitext(sub_path.split('/')[-1])[0]
+
+        if filename in self.converted_results:
+            all_detections_bboxes = self.converted_results[filename][self.c_id]
+            all_detections_bboxes = all_detections_bboxes[:, :4]
+            all_detections_bboxes = torch.from_numpy(all_detections_bboxes)
+        else:
+            all_detections_bboxes = torch.empty(0, 4)  # 設定為空的 Tensor
+
+        gt_bboxes = torch.from_numpy(results['gt_bboxes']) # 轉換為 Tensor
+
+        if gt_bboxes.numel() > 0 and all_detections_bboxes.numel() > 0:
+            # 計算所有檢測框和真實框之間的 IoU
+            overlaps = self.bbox_overlaps(all_detections_bboxes, gt_bboxes)
+
+            # 對於每一個檢測框，找到與之 IoU 最大的真實框及其 IoU 值
+            max_overlaps, argmax_overlaps = overlaps.max(dim=1)
+
+            # 將 IoU 小於一定閾值的檢測框視為沒有正確預測的框
+            iou_threshold = 0.1  # 可以調整這個閾值
+            incorrectly_predicted_mask = max_overlaps < iou_threshold
+
+            # 獲取沒有正確預測的檢測框
+            hard_examples_bboxes = all_detections_bboxes[incorrectly_predicted_mask]
+            hard_examples = hard_examples_bboxes
+
+        elif all_detections_bboxes.numel() > 0 and gt_bboxes.numel() == 0:
+            # 如果有檢測框但沒有真實框，則所有檢測框都可能是假陽性，可以視為困難樣本
+            hard_examples = all_detections_bboxes
+        else:
+            # 設為空
+            hard_examples = all_detections_bboxes
+
+        # print(all_detections_bboxes)
+        # print(gt_bboxes)
+        # print(max_overlaps)
+        # print(hard_examples)
+        # breakpoint()
+
+        results['hard_example'] = { "hard": hard_examples.tolist() }
+
+        return results
+    
+    def bbox_overlaps(self, bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
+        """Calculate overlap between two set of bboxes.
+
+        FP16 Contributed by https://github.com/open-mmlab/mmdetection/pull/4889
+        Note:
+            Assume bboxes1 is M x 4, bboxes2 is N x 4, when mode is 'iou',
+            there are some new generated variable when calculating IOU
+            using bbox_overlaps function:
+
+            1) is_aligned is False
+                area1: M x 1
+                area2: N x 1
+                lt: M x N x 2
+                rb: M x N x 2
+                wh: M x N x 2
+                overlap: M x N x 1
+                union: M x N x 1
+                ious: M x N x 1
+
+                Total memory:
+                    S = (9 x N x M + N + M) * 4 Byte,
+
+                When using FP16, we can reduce:
+                    R = (9 x N x M + N + M) * 4 / 2 Byte
+                    R large than (N + M) * 4 * 2 is always true when N and M >= 1.
+                    Obviously, N + M <= N * M < 3 * N * M, when N >=2 and M >=2,
+                            N + 1 < 3 * N, when N or M is 1.
+
+                Given M = 40 (ground truth), N = 400000 (three anchor boxes
+                in per grid, FPN, R-CNNs),
+                    R = 275 MB (one times)
+
+                A special case (dense detection), M = 512 (ground truth),
+                    R = 3516 MB = 3.43 GB
+
+                When the batch size is B, reduce:
+                    B x R
+
+                Therefore, CUDA memory runs out frequently.
+
+                Experiments on GeForce RTX 2080Ti (11019 MiB):
+
+                |   dtype   |   M   |   N   |   Use    |   Real   |   Ideal   |
+                |:----:|:----:|:----:|:----:|:----:|:----:|
+                |   FP32   |   512 | 400000 | 8020 MiB |   --   |   --   |
+                |   FP16   |   512 | 400000 |   4504 MiB | 3516 MiB | 3516 MiB |
+                |   FP32   |   40 | 400000 |   1540 MiB |   --   |   --   |
+                |   FP16   |   40 | 400000 |   1264 MiB |   276MiB   | 275 MiB |
+
+            2) is_aligned is True
+                area1: N x 1
+                area2: N x 1
+                lt: N x 2
+                rb: N x 2
+                wh: N x 2
+                overlap: N x 1
+                union: N x 1
+                ious: N x 1
+
+                Total memory:
+                    S = 11 x N * 4 Byte
+
+                When using FP16, we can reduce:
+                    R = 11 x N * 4 / 2 Byte
+
+            So do the 'giou' (large than 'iou').
+
+            Time-wise, FP16 is generally faster than FP32.
+
+            When gpu_assign_thr is not -1, it takes more time on cpu
+            but not reduce memory.
+            There, we can reduce half the memory and keep the speed.
+
+        If ``is_aligned`` is ``False``, then calculate the overlaps between each
+        bbox of bboxes1 and bboxes2, otherwise the overlaps between each aligned
+        pair of bboxes1 and bboxes2.
+
+        Args:
+            bboxes1 (Tensor): shape (B, m, 4) in <x1, y1, x2, y2> format or empty.
+            bboxes2 (Tensor): shape (B, n, 4) in <x1, y1, x2, y2> format or empty.
+                B indicates the batch dim, in shape (B1, B2, ..., Bn).
+                If ``is_aligned`` is ``True``, then m and n must be equal.
+            mode (str): "iou" (intersection over union), "iof" (intersection over
+                foreground) or "giou" (generalized intersection over union).
+                Default "iou".
+            is_aligned (bool, optional): If True, then m and n must be equal.
+                Default False.
+            eps (float, optional): A value added to the denominator for numerical
+                stability. Default 1e-6.
+
+        Returns:
+            Tensor: shape (m, n) if ``is_aligned`` is False else shape (m,)
+
+        Example:
+            >>> bboxes1 = torch.FloatTensor([
+            >>>     [0, 0, 10, 10],
+            >>>     [10, 10, 20, 20],
+            >>>     [32, 32, 38, 42],
+            >>> ])
+            >>> bboxes2 = torch.FloatTensor([
+            >>>     [0, 0, 10, 20],
+            >>>     [0, 10, 10, 19],
+            >>>     [10, 10, 20, 20],
+            >>> ])
+            >>> overlaps = bbox_overlaps(bboxes1, bboxes2)
+            >>> assert overlaps.shape == (3, 3)
+            >>> overlaps = bbox_overlaps(bboxes1, bboxes2, is_aligned=True)
+            >>> assert overlaps.shape == (3, )
+
+        Example:
+            >>> empty = torch.empty(0, 4)
+            >>> nonempty = torch.FloatTensor([[0, 0, 10, 9]])
+            >>> assert tuple(bbox_overlaps(empty, nonempty).shape) == (0, 1)
+            >>> assert tuple(bbox_overlaps(nonempty, empty).shape) == (1, 0)
+            >>> assert tuple(bbox_overlaps(empty, empty).shape) == (0, 0)
+        """
+
+        assert mode in ['iou', 'iof', 'giou'], f'Unsupported mode {mode}'
+        # Either the boxes are empty or the length of boxes' last dimension is 4
+        assert (bboxes1.size(-1) == 4 or bboxes1.size(0) == 0)
+        assert (bboxes2.size(-1) == 4 or bboxes2.size(0) == 0)
+
+        # 修正 bboxes1
+        bboxes1[:, [0, 2]] = torch.sort(bboxes1[:, [0, 2]], dim=1)[0]  # 確保 x_min ≤ x_max
+        bboxes1[:, [1, 3]] = torch.sort(bboxes1[:, [1, 3]], dim=1)[0]  # 確保 y_min ≤ y_max
+
+        # 修正 bboxes2
+        bboxes2[:, [0, 2]] = torch.sort(bboxes2[:, [0, 2]], dim=1)[0]
+        bboxes2[:, [1, 3]] = torch.sort(bboxes2[:, [1, 3]], dim=1)[0]
+
+        assert (bboxes1[..., 2] >= bboxes1[..., 0]).all()
+        assert (bboxes1[..., 3] >= bboxes1[..., 1]).all()
+        assert (bboxes2[..., 2] >= bboxes2[..., 0]).all()
+        assert (bboxes2[..., 3] >= bboxes2[..., 1]).all()
+
+        # Batch dim must be the same
+        # Batch dim: (B1, B2, ... Bn)
+        assert bboxes1.shape[:-2] == bboxes2.shape[:-2]
+        batch_shape = bboxes1.shape[:-2]
+
+        rows = bboxes1.size(-2)
+        cols = bboxes2.size(-2)
+        if is_aligned:
+            assert rows == cols
+
+        if rows * cols == 0:
+            if is_aligned:
+                return bboxes1.new(batch_shape + (rows, ))
+            else:
+                return bboxes1.new(batch_shape + (rows, cols))
+
+        area1 = (bboxes1[..., 2] - bboxes1[..., 0]) * (
+            bboxes1[..., 3] - bboxes1[..., 1])
+        area2 = (bboxes2[..., 2] - bboxes2[..., 0]) * (
+            bboxes2[..., 3] - bboxes2[..., 1])
+
+        if is_aligned:
+            lt = torch.max(bboxes1[..., :2], bboxes2[..., :2])  # [B, rows, 2]
+            rb = torch.min(bboxes1[..., 2:], bboxes2[..., 2:])  # [B, rows, 2]
+
+            wh = fp16_clamp(rb - lt, min=0)
+            overlap = wh[..., 0] * wh[..., 1]
+
+            if mode in ['iou', 'giou']:
+                union = area1 + area2 - overlap
+            else:
+                union = area1
+            if mode == 'giou':
+                enclosed_lt = torch.min(bboxes1[..., :2], bboxes2[..., :2])
+                enclosed_rb = torch.max(bboxes1[..., 2:], bboxes2[..., 2:])
+        else:
+            lt = torch.max(bboxes1[..., :, None, :2],
+                        bboxes2[..., None, :, :2])  # [B, rows, cols, 2]
+            rb = torch.min(bboxes1[..., :, None, 2:],
+                        bboxes2[..., None, :, 2:])  # [B, rows, cols, 2]
+
+            wh = fp16_clamp(rb - lt, min=0)
+            overlap = wh[..., 0] * wh[..., 1]
+
+            if mode in ['iou', 'giou']:
+                union = area1[..., None] + area2[..., None, :] - overlap
+            else:
+                union = area1[..., None]
+            if mode == 'giou':
+                enclosed_lt = torch.min(bboxes1[..., :, None, :2],
+                                        bboxes2[..., None, :, :2])
+                enclosed_rb = torch.max(bboxes1[..., :, None, 2:],
+                                        bboxes2[..., None, :, 2:])
+
+        eps = union.new_tensor([eps])
+        union = torch.max(union, eps)
+        ious = overlap / union
+        if mode in ['iou', 'iof']:
+            return ious
+        # calculate gious
+        enclose_wh = fp16_clamp(enclosed_rb - enclosed_lt, min=0)
+        enclose_area = enclose_wh[..., 0] * enclose_wh[..., 1]
+        enclose_area = torch.max(enclose_area, eps)
+        gious = ious - (enclose_area - union) / enclose_area
+
+        # print(f"enclose area {enclose_area}")
+
+        return gious
+
+       
+    def load_json(self, file_path):
+        """載入 JSON 檔案"""
+        with open(file_path, "r") as f:
+            return json.load(f)
+
+    def convert_coco_predictions(self, coco_predictions, empty_annotations):
+        """
+        將 COCO 預測結果轉換為 {file_name: tensor_list} 結構。
+        
+        :param coco_predictions: COCO 格式的預測結果 (list of dicts)
+        :param empty_annotations: 原始空標註資料，應包含 {"images": [{"id": X, "file_name": "path/to/image"}, ...]}
+        :return: dict，key 為 file_name，value 為該圖片的預測結果 tensor list
+        """
+        # 建立 image_id 到 file_name 的映射
+        image_id_to_file = {img["id"]: img["file_name"] for img in empty_annotations["images"]}
+        
+        # 建立 {file_name: list of tensors} 結構
+        results = {}
+        for pred in coco_predictions:
+            image_id = pred["image_id"]
+            file_name = image_id_to_file.get(image_id, None)
+            if file_name is None:
+                continue
+            
+            bbox = pred["bbox"]  # [x, y, w, h]
+            score = pred["score"]
+            category_id = pred["category_id"]
+
+            # 轉換為 [x1, y1, x2, y2, score]，符合 MMDetection 格式
+            x1, y1, w, h = bbox
+            x2, y2 = x1 + w, y1 + h
+            bbox_data = np.array([x1, y1, x2, y2, score])
+
+            # 初始化該圖片的分類列表
+            if file_name not in results:
+                results[file_name] = {}
+
+            # 把 bbox 存入對應類別的 list
+            if category_id not in results[file_name]:
+                results[file_name][category_id] = []
+            
+            results[file_name][category_id].append(bbox_data)
+        
+        # 把 list 轉成 numpy array，確保格式一致
+        for file_name in results:
+            for category_id in results[file_name]:
+                results[file_name][category_id] = np.array(results[file_name][category_id])
+        
+        return results
+
+    def __repr__(self):
+        repr_str = (f'{self.__class__.__name__}('
+                    f'past_annotations_range={self.past_range})')
+        return repr_str
 
 
 @PIPELINES.register_module()

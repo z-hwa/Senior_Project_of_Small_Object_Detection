@@ -10,6 +10,8 @@ from mmcv.ops import batched_nms
 from ..builder import HEADS
 from .anchor_head import AnchorHead
 
+from mmcv.runner import ModuleList
+from ..builder import HEADS, build_head, build_roi_extractor
 
 @HEADS.register_module()
 class RPNHead(AnchorHead):

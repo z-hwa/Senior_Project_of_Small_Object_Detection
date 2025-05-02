@@ -1,6 +1,6 @@
 import os
 dataset_type = 'DroneDataset'  
-data_root = "/root/Document/MVA2023SmallObjectDetection4SpottingBirds" + '/data/'
+data_root = "/root/Document" + '/data/'
 
 # 修改增加多尺度輸入 2024.10.2
 # 復原2024.10.3
@@ -15,12 +15,12 @@ train_pipeline = [
         type='MVARandomCrop',
         crop_size=(800,800),
         must_include_bbox_ratio=0.0),
-    # dict(
-    #     type='MVAPasteBirds',
-    #     minW=5,
-    #     maxW=80,
-    #     num_range_per_image=[0, 5],
-    #     bbox_path="data/birds/"),
+    dict(
+        type='MVAPasteBirds',
+        minW=5,
+        maxW=80,
+        num_range_per_image=[0, 5],
+        bbox_path="/root/Document/data/MVA2023/birds/"),
     dict(
         type='PhotoMetricDistortion',
         brightness_delta=32,
@@ -57,24 +57,21 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=1,
+    samples_per_gpu=2,
+    workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file= "/root/Document/MVA2025-SMOT4SB/OC_SORT/datasets/SMOT4SB/annotations/train.json",
-        img_prefix= "/root/Document/MVA2025-SMOT4SB/OC_SORT/datasets/SMOT4SB/train",
-        # ann_file= "/root/Document/MVA2025-SMOT4SB/OC_SORT/datasets/SMOT4SB/annotations/val.json",
-        # img_prefix= "/root/Document/MVA2025-SMOT4SB/OC_SORT/datasets/SMOT4SB/val",
+        ann_file= "/root/Document/data/SMOT4SB/annotations/mixed_train_coco_only2.json",
+        img_prefix= "/root/Document/data/",
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file= "/root/Document/MVA2025-SMOT4SB/OC_SORT/datasets/SMOT4SB/annotations/val.json",
-        img_prefix= "/root/Document/MVA2025-SMOT4SB/OC_SORT/datasets/SMOT4SB/val",
+        ann_file=data_root + 'MVA2023/train/annotations/split_val_coco.json',
+        img_prefix=data_root + 'MVA2023/train/images/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        # ann_file=data_root + 'mva2023_sod4bird_train/annotations/split_val_coco.json',
-        # img_prefix=data_root + 'mva2023_sod4bird_train/images/',
-        ann_file= "/root/Document/MVA2025-SMOT4SB/OC_SORT/datasets/SMOT4SB/annotations/val.json",
-        img_prefix= "/root/Document/MVA2025-SMOT4SB/OC_SORT/datasets/SMOT4SB/val",
+        ann_file = '/root/Document/data/MVA2025/annotations/test_coco.json',
+        img_prefix=
+        '/root/Document/data/MVA2025/pub_test', 
         pipeline=test_pipeline))

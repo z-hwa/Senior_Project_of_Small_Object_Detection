@@ -345,6 +345,7 @@ class Collect:
         data['img_metas'] = DC(img_meta, cpu_only=True)
         for key in self.keys:
             data[key] = results[key]
+
         return data
 
     def __repr__(self):
